@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriTrust — AI-Powered Food Intelligence Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --brand-primary: #0284c7;
+            --brand-hover: #0369a1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            background: var(--brand-primary);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--brand-primary);
+            background: #f1f5f9;
+        }
+
+        /* Main Container */
+        main {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        /* Tabs */
+        .tab-container {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--brand-primary);
+        }
+
+        .tab-btn.active {
+            background: var(--bg-card);
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .tab-content {
+            padding: 2rem;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Inputs & Buttons */
+        .input-group {
+            display: flex;
+            gap: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        input[type="text"], input[type="number"], textarea {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .btn-primary {
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Drag and drop upload */
+        .ocr-boxes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .upload-area-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-area-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .box-icon {
+            font-size: 1.5rem;
+            background: #e0f2fe;
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-area-header h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .box-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--brand-primary);
+            background: #f0f9ff;
+        }
+
+        .upload-icon {
+            font-size: 2.25rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-name {
+            margin-top: 0.75rem;
+            font-weight: 600;
+            color: var(--brand-primary);
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .btn-clear {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn-clear:hover {
+            text-decoration: underline;
+        }
+
+        /* Manual Input Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Loader */
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results Container */
+        .results-container {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Score Header Card */
+        .score-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .product-meta h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-meta p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .score-badge-box {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .grade-badge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .grade-APlus { background: #15803d; }
+        .grade-A { background: #16a34a; }
+        .grade-B { background: #ca8a04; }
+        .grade-C { background: #d97706; }
+        .grade-D { background: #dc2626; }
+        .grade-F { background: #991b1b; }
+
+        .score-number {
+            text-align: right;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .score-max {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .score-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Grid Layout for Detailed Cards */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-score {
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #f1f5f9;
+        }
+
+        /* Traffic Lights */
+        .traffic-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .traffic-item {
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .traffic-green { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .traffic-amber { background: #fffbeb; color: #92400e; border: 1px solid #fef08a; }
+        .traffic-red { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .traffic-gray { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+
+
+        /* Explanation Box */
+        .explanation-card {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+        }
+
+        .explanation-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .explanation-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Flagged Items */
+        .flag-item {
+            padding: 8px 12px;
+            background: #fff1f2;
+            border-left: 3px solid var(--danger);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #9f1239;
+        }
+
+        /* Quick Barcodes */
+        .quick-barcodes {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .chip {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .chip:hover {
+            background: var(--brand-primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🥗</div>
+            <span>NutriTrust</span>
+        </div>
+        <div class="nav-links">
+            <a href="/docs" target="_blank" class="nav-link">Swagger API Docs</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="hero">
+            <h1>Food Intelligence & Junk Food Calculator</h1>
+            <p>Scan a product barcode, upload label photos (Nutrition facts & Ingredients), or manually input data to compute evidence-backed NutriTrust ratings.</p>
+        </div>
+
+        <!-- Tab Interface -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('barcode')">
+                    🔍 Barcode Scanner
+                </button>
+                <button class="tab-btn" onclick="switchTab('ocr')">
+                    📷 Label Photo (OCR)
+                </button>
+                <button class="tab-btn" onclick="switchTab('manual')">
+                    ✍️ Manual Calculator
+                </button>
+            </div>
+
+            <!-- Tab 1: Barcode -->
+            <div id="tab-barcode" class="tab-content active">
+                <div class="input-group">
+                    <input type="text" id="barcode-input" placeholder="Enter product barcode (e.g. 8901058851858)..." value="8901058851858">
+                    <button class="btn-primary" onclick="scanBarcode()">Scan Product</button>
+                </div>
+                <div class="quick-barcodes">
+                    <span>Try popular Indian products:</span>
+                    <span class="chip" onclick="setBarcode('8901058851858')">Maggi Noodles</span>
+                    <span class="chip" onclick="setBarcode('8901063142101')">Parle-G</span>
+                    <span class="chip" onclick="setBarcode('3017624010701')">Nutella</span>
+                    <span class="chip" onclick="setBarcode('8901030026212')">Lipton Green Tea</span>
+                </div>
+            </div>
+
+            <!-- Tab 2: OCR (Dual Upload Boxes) -->
+            <div id="tab-ocr" class="tab-content">
+                <div class="ocr-boxes-grid">
+                    <!-- Box 1: Nutrition Facts Table -->
+                    <div class="upload-area-card">
+                        <div class="upload-area-header">
+                            <span class="box-icon">📊</span>
+                            <div>
+                                <h4>1. Nutritional Value Label Photo</h4>
+                                <p class="box-sub">Photo of Nutrition Facts table (Energy, Fat, Sugar, Sodium)</p>
+                            </div>
+                        </div>
+                        <div class="upload-area" id="drop-zone-nutrition" onclick="document.getElementById('nutrition-image-input').click()">
+                            <div class="upload-icon">📷</div>
+                            <p style="font-weight: 600; color: var(--text-primary);">Click or drag & drop Nutrition Label</p>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">JPG, PNG, WebP (Max 10MB)</p>
+                            <input type="file" id="nutrition-image-input" accept="image/*" style="display: none;" onchange="handleNutritionFileSelect(event)">
+                            <div class="file-name" id="nutrition-file-name"></div>
+                        </div>
+                        <div id="nutrition-action" style="display: none; text-align: right;">
+                            <button class="btn-clear" onclick="clearNutritionFile(event)">Remove Image ✖</button>
+                        </div>
+                    </div>
+
+                    <!-- Box 2: Ingredients List -->
+                    <div class="upload-area-card">
+                        <div class="upload-area-header">
+                            <span class="box-icon">📝</span>
+                            <div>
+                                <h4>2. Ingredients List Photo</h4>
+                                <p class="box-sub">Photo of Ingredients list (Food items, E-numbers, Additives)</p>
+                            </div>
+                        </div>
+                        <div class="upload-area" id="drop-zone-ingredients" onclick="document.getElementById('ingredients-image-input').click()">
+                            <div class="upload-icon">📷</div>
+                            <p style="font-weight: 600; color: var(--text-primary);">Click or drag & drop Ingredients List</p>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">JPG, PNG, WebP (Max 10MB)</p>
+                            <input type="file" id="ingredients-image-input" accept="image/*" style="display: none;" onchange="handleIngredientsFileSelect(event)">
+                            <div class="file-name" id="ingredients-file-name"></div>
+                        </div>
+                        <div id="ingredients-action" style="display: none; text-align: right;">
+                            <button class="btn-clear" onclick="clearIngredientsFile(event)">Remove Image ✖</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                        💡 <strong>Note:</strong> Uploading at least 1 image is required. Uploading both provides 100% full rating accuracy!
+                    </p>
+                    <button class="btn-primary" id="btn-ocr" onclick="scanImage()" disabled>Run OCR & Calculate Rating</button>
+                </div>
+            </div>
+
+            <!-- Tab 3: Manual Calculator -->
+            <div id="tab-manual" class="tab-content">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>Product Name</label>
+                        <input type="text" id="m-name" value="Sample Snack">
+                    </div>
+                    <div class="form-field">
+                        <label>Calories (kcal/100g)</label>
+                        <input type="number" id="m-kcal" value="450">
+                    </div>
+                    <div class="form-field">
+                        <label>Total Fat (g/100g)</label>
+                        <input type="number" id="m-fat" value="20">
+                    </div>
+                    <div class="form-field">
+                        <label>Saturated Fat (g/100g)</label>
+                        <input type="number" id="m-satfat" value="8">
+                    </div>
+                    <div class="form-field">
+                        <label>Sugar (g/100g)</label>
+                        <input type="number" id="m-sugar" value="15">
+                    </div>
+                    <div class="form-field">
+                        <label>Sodium (mg/100g)</label>
+                        <input type="number" id="m-sodium" value="950">
+                    </div>
+                    <div class="form-field">
+                        <label>Protein (g/100g)</label>
+                        <input type="number" id="m-protein" value="5">
+                    </div>
+                    <div class="form-field">
+                        <label>Fiber (g/100g)</label>
+                        <input type="number" id="m-fiber" value="1.5">
+                    </div>
+                </div>
+                <div class="form-field" style="margin-bottom: 1.5rem;">
+                    <label>Ingredients Text (Optional for NOVA & Additive detection)</label>
+                    <textarea id="m-ingredients" rows="2" placeholder="e.g. Wheat flour, palm oil, salt, maltodextrin, E621, E150d...">Wheat flour, palm oil, salt, maltodextrin, E621, E150d</textarea>
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn-primary" onclick="rateManual()">Calculate Rating</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p style="font-weight: 600; color: var(--text-secondary);" id="loader-text">Processing data & evaluating scientific rules...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-box" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; text-align: center; font-weight: 500;"></div>
+
+        <!-- Results Container -->
+        <div class="results-container" id="results">
+            <!-- Score Card Header -->
+            <div class="score-card">
+                <div class="product-meta">
+                    <h2 id="res-title">Product Name</h2>
+                    <p id="res-brand">Brand Name • Barcode: 123456</p>
+                </div>
+                <div class="score-badge-box">
+                    <div class="grade-badge" id="res-grade-badge">A</div>
+                    <div class="score-number">
+                        <div><span class="score-value" id="res-score-val">85</span><span class="score-max">/100</span></div>
+                        <div class="score-label" id="res-grade-label">Good choice</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Grid -->
+            <div class="detail-grid">
+                <!-- Card 1: Traffic Light Limits -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🚦 Traffic Light Limits</span>
+                        <span class="card-score" id="res-limits-score">20/20</span>
+                    </div>
+                    <div class="traffic-grid" id="res-traffic-grid">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+
+                <!-- Card 2: NOVA Processing -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏭 NOVA Processing</span>
+                        <span class="card-score" id="res-nova-score">25/25</span>
+                    </div>
+                    <p style="font-weight: 700; font-size: 1rem; margin-bottom: 6px;" id="res-nova-group">NOVA Group 4</p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;" id="res-nova-details">Ultra-processed food product</p>
+                    <div id="res-nova-markers"></div>
+                </div>
+
+                <!-- Card 3: Additive Safety -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">⚗️ Additive Safety</span>
+                        <span class="card-score" id="res-add-score">15/15</span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;" id="res-add-details">No flagged additives</p>
+                    <div id="res-add-flagged"></div>
+                </div>
+            </div>
+
+            <!-- Full Ingredients & Nutrition Facts Breakdown -->
+            <div class="detail-grid" style="margin-bottom: 1.5rem;">
+                <!-- Full Ingredients Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📝 Full Ingredients List</span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;" id="res-full-ingredients">Loading ingredients...</p>
+                </div>
+
+                <!-- Full Nutrition Facts Table Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📊 Raw Nutrition Facts (per 100g)</span>
+                    </div>
+                    <div style="font-size: 0.85rem;" id="res-nutrition-table">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanation Card -->
+            <div class="explanation-card">
+                <h3>💡 NutriTrust Evidence-Based Verdict</h3>
+                <p id="res-explanation">Explanation text will appear here...</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let selectedNutritionFile = null;
+        let selectedIngredientsFile = null;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            hideError();
+        }
+
+        function setBarcode(code) {
+            document.getElementById('barcode-input').value = code;
+            scanBarcode();
+        }
+
+        function updateOCRButtonState() {
+            const btn = document.getElementById('btn-ocr');
+            if (selectedNutritionFile || selectedIngredientsFile) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        function handleNutritionFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedNutritionFile = file;
+                document.getElementById('nutrition-file-name').innerText = 'Selected: ' + file.name;
+                document.getElementById('nutrition-action').style.display = 'block';
+                updateOCRButtonState();
+            }
+        }
+
+        function clearNutritionFile(event) {
+            if (event) event.stopPropagation();
+            selectedNutritionFile = null;
+            document.getElementById('nutrition-image-input').value = '';
+            document.getElementById('nutrition-file-name').innerText = '';
+            document.getElementById('nutrition-action').style.display = 'none';
+            updateOCRButtonState();
+        }
+
+        function handleIngredientsFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedIngredientsFile = file;
+                document.getElementById('ingredients-file-name').innerText = 'Selected: ' + file.name;
+                document.getElementById('ingredients-action').style.display = 'block';
+                updateOCRButtonState();
+            }
+        }
+
+        function clearIngredientsFile(event) {
+            if (event) event.stopPropagation();
+            selectedIngredientsFile = null;
+            document.getElementById('ingredients-image-input').value = '';
+            document.getElementById('ingredients-file-name').innerText = '';
+            document.getElementById('ingredients-action').style.display = 'none';
+            updateOCRButtonState();
+        }
+
+        // Drag & Drop Setup for both boxes
+        function setupDragAndDrop(dropZoneId, fileInputId, handleFileFn) {
+            const dropZone = document.getElementById(dropZoneId);
+            if (!dropZone) return;
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    const dt = new DataTransfer();
+                    dt.items.add(e.dataTransfer.files[0]);
+                    const input = document.getElementById(fileInputId);
+                    input.files = dt.files;
+                    handleFileFn({ target: input });
+                }
+            });
+        }
+
+        setTimeout(() => {
+            setupDragAndDrop('drop-zone-nutrition', 'nutrition-image-input', handleNutritionFileSelect);
+            setupDragAndDrop('drop-zone-ingredients', 'ingredients-image-input', handleIngredientsFileSelect);
+        }, 100);
+
+        function showLoader(text = "Processing data...") {
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            hideError();
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function showError(msg) {
+            hideLoader();
+            const errBox = document.getElementById('error-box');
+            errBox.innerText = msg;
+            errBox.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-box').style.display = 'none';
+        }
+
+        // API Calls
+        async function scanBarcode() {
+            const code = document.getElementById('barcode-input').value.trim();
+            if (!code) return showError("Please enter a valid barcode.");
+
+            showLoader("Looking up barcode in Open Food Facts database...");
+            try {
+                const res = await fetch('/api/scan/barcode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ barcode: code })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Product not found.");
+                renderResults(data);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        async function scanImage() {
+            if (!selectedNutritionFile && !selectedIngredientsFile) {
+                return showError("Please select at least 1 image file (Nutrition Facts or Ingredients).");
+            }
+
+            let msg = "Uploading to Sarvam AI OCR & processing text...";
+            if (selectedNutritionFile && selectedIngredientsFile) {
+                msg = "Uploading both Nutrition & Ingredients photos to Sarvam AI OCR...";
+            }
+            showLoader(msg);
+
+            try {
+                const formData = new FormData();
+                if (selectedNutritionFile) {
+                    formData.append('nutrition_image', selectedNutritionFile);
+                }
+                if (selectedIngredientsFile) {
+                    formData.append('ingredients_image', selectedIngredientsFile);
+                }
+
+                const res = await fetch('/api/scan/image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Failed to process image(s).");
+                renderResults(data);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        async function rateManual() {
+            showLoader("Calculating NutriTrust score from inputs...");
+            const req = {
+                product_name: document.getElementById('m-name').value,
+                energy_kcal: parseFloat(document.getElementById('m-kcal').value) || 0,
+                total_fat: parseFloat(document.getElementById('m-fat').value) || 0,
+                saturated_fat: parseFloat(document.getElementById('m-satfat').value) || 0,
+                sugar: parseFloat(document.getElementById('m-sugar').value) || 0,
+                sodium: parseFloat(document.getElementById('m-sodium').value) || 0,
+                protein: parseFloat(document.getElementById('m-protein').value) || 0,
+                fiber: parseFloat(document.getElementById('m-fiber').value) || 0,
+                ingredients_text: document.getElementById('m-ingredients').value
+            };
+
+            try {
+                const res = await fetch('/api/rate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(req)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Error calculating rating.");
+                renderResults(data);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        // Render Report
+        function renderResults(data) {
+            hideLoader();
+            const product = data.product || {};
+            const scores = data.scores || {};
+            const nutrition = data.nutrition_per_100g || {};
+
+            // Meta
+            document.getElementById('res-title').innerText = product.name || "Unknown Product";
+            document.getElementById('res-brand').innerText = `${product.brand || 'N/A'} ${product.barcode ? '• Barcode: ' + product.barcode : ''} ${product.categories ? '• Category: ' + product.categories.split(',')[0] : ''}`;
+
+            // Score & Grade Badge
+            const scoreVal = scores.overall ?? 0;
+            const grade = scores.grade || 'F';
+            const gradeLabel = scores.grade_label || '';
+
+            document.getElementById('res-score-val').innerText = scoreVal;
+            document.getElementById('res-grade-label').innerText = gradeLabel;
+            
+            const badge = document.getElementById('res-grade-badge');
+            badge.innerText = grade;
+            badge.className = 'grade-badge grade-' + grade.replace('+', 'Plus');
+
+            // Sub-score chips
+            document.getElementById('res-limits-score').innerText = scores.nutrient_limits?.score + '/100';
+            document.getElementById('res-nova-score').innerText = scores.nova_processing?.score + '/100';
+            document.getElementById('res-add-score').innerText = scores.additive_safety?.score + '/100';
+
+            // Traffic Lights
+            const tls = scores.nutrient_limits?.traffic_lights || {};
+            const trafficGrid = document.getElementById('res-traffic-grid');
+            trafficGrid.innerHTML = '';
+            
+            for (const [key, item] of Object.entries(tls)) {
+                const div = document.createElement('div');
+                div.className = `traffic-item traffic-${item.color}`;
+                div.innerHTML = `<span>${key.replace('_', ' ').toUpperCase()}</span><span>${item.value} ${item.unit}</span>`;
+                trafficGrid.appendChild(div);
+            }
+
+            // NOVA
+            const nova = scores.nova_processing || {};
+            document.getElementById('res-nova-group').innerText = `NOVA Group ${nova.nova_group ?? 'N/A'}`;
+            document.getElementById('res-nova-details').innerText = nova.details || '';
+
+            // Additives
+            const add = scores.additive_safety || {};
+            document.getElementById('res-add-details').innerText = add.details || 'No flagged additives';
+            const addContainer = document.getElementById('res-add-flagged');
+            addContainer.innerHTML = '';
+
+            if (add.flagged_additives && add.flagged_additives.length) {
+                add.flagged_additives.forEach(item => {
+                    const d = document.createElement('div');
+                    d.className = 'flag-item';
+                    d.innerText = item;
+                    addContainer.appendChild(d);
+                });
+            }
+
+            // Full Ingredients
+            const ingText = data.ingredients_text || product.ingredients_text || "No detailed ingredient list available in Open Food Facts entry for this barcode. You can upload a label image in the OCR tab to extract exact ingredients!";
+            document.getElementById('res-full-ingredients').innerText = ingText;
+
+            // Raw Nutrition Table
+            const fmt = (val, unit) => (val !== null && val !== undefined) ? `<strong>${val} ${unit}</strong>` : `<span style="color: #94a3b8;">Not detected</span>`;
+            const nutTable = document.getElementById('res-nutrition-table');
+            nutTable.innerHTML = `
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Energy:</span>${fmt(nutrition.energy_kcal, 'kcal')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Total Fat:</span>${fmt(nutrition.total_fat, 'g')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Saturated Fat:</span>${fmt(nutrition.saturated_fat, 'g')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Trans Fat:</span>${fmt(nutrition.trans_fat, 'g')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Total Sugar:</span>${fmt(nutrition.sugar, 'g')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Sodium:</span>${fmt(nutrition.sodium, 'mg')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Protein:</span>${fmt(nutrition.protein, 'g')}</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span>Fiber:</span>${fmt(nutrition.fiber, 'g')}</div>
+            `;
+
+
+            // Explanation
+            document.getElementById('res-explanation').innerText = data.explanation || '';
+
+            // Display
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+    </script>
+</body>
+</html>
