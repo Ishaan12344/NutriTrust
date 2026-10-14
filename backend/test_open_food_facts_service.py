@@ -30,11 +30,68 @@ class BarcodeTests(unittest.TestCase):
             "iron_unit": "µg",
             "sugars_100g": 5,
         }})
-        self.assertEqual(mapped["total_fat"], {"value": 10.0, "unit": "g"})
-        self.assertEqual(mapped["sodium"], {"value": 400.0, "unit": "mg"})
-        self.assertEqual(mapped["calcium"], {"value": 120.0, "unit": "mg"})
-        self.assertEqual(mapped["iron"], {"value": 0.25, "unit": "mg"})
+        self.assertEqual(mapped["total_fat"]["value"], 10.0)
+        self.assertEqual(mapped["sodium"]["value"], 400.0)
+        self.assertEqual(mapped["calcium"]["value"], 120.0)
+        self.assertEqual(mapped["iron"]["value"], 0.25)
+        self.assertEqual(mapped["sodium"]["basis"], "per_100g")
         self.assertNotIn("protein", mapped)
+
+    def test_added_sugar_modifier_is_preserved(self):
+        mapped = _extract_nutrition_per_100g({"nutriments": {
+            "sugars_100g": 18.8,
+            "added-sugars_100g": 0,
+            "added-sugars_modifier": "~",
+        }})
+        self.assertEqual(mapped["added_sugar"]["value"], 0.0)
+        self.assertEqual(mapped["added_sugar"]["status"], "approximate")
+        self.assertEqual(mapped["added_sugar"]["modifier"], "~")
+
+    def test_unsuffixed_fields_require_explicit_100g_basis(self):
+        without_basis = _extract_nutrition_per_100g({
+            "nutriments": {"fat": 10, "energy-kcal": 200},
+        })
+        with_basis = _extract_nutrition_per_100g({
+            "nutrition_data_per": "100g",
+            "nutriments": {"fat": 10, "energy_100g": 840, "energy_unit": "kJ"},
+        })
+        self.assertEqual(without_basis, {})
+        self.assertEqual(with_basis["total_fat"]["value"], 10)
+        self.assertAlmostEqual(with_basis["energy_kcal"]["value"], 200.7648)
+
+    def test_explicit_open_food_facts_serving_values_are_kept_separate(self):
+        product = {
+            "nutriments": {
+                "energy-kcal_serving": 172,
+                "energy-kcal_unit": "kcal",
+                "proteins_serving": 4.5,
+                "proteins_unit": "g",
+                "energy-kcal_100g": 430,
+                "proteins_100g": 11.25,
+            }
+        }
+        serving = __import__("open_food_facts_service")._extract_nutrition_per_serving(product)
+        per_100g = _extract_nutrition_per_100g(product)
+        self.assertEqual(serving["energy_kcal"]["value"], 172)
+        self.assertEqual(serving["energy_kcal"]["basis"], "per_serving")
+        self.assertEqual(per_100g["energy_kcal"]["value"], 430)
+
+    def test_v2_fallback_fills_gaps_without_overwriting_v3_values(self):
+        v3 = self._response({"status": "success", "product": {
+            "code": "1234567890123", "product_name": "Example",
+            "nutriments": {"energy-kcal_100g": 200},
+        }})
+        v2 = self._response({"status": 1, "product": {"code": "1234567890123", "nutriments": {
+            "energy-kcal_100g": 210, "fat_100g": 8,
+        }}})
+        with patch("open_food_facts_service.httpx.AsyncClient") as client_cls:
+            client = client_cls.return_value.__aenter__.return_value
+            client.get = AsyncMock(side_effect=[v3, v2])
+            result = __import__("asyncio").run(fetch_open_food_facts_product("1234567890123"))
+        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"]["value"], 200)
+        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"]["source"], "open_food_facts")
+        self.assertEqual(result["nutrition_per_100g"]["total_fat"]["value"], 8)
+        self.assertEqual(result["nutrition_per_100g"]["total_fat"]["source"], "open_food_facts_v2_fallback")
 
     def test_normalized_product_fields(self):
         result = _normalize_product({
@@ -47,7 +104,7 @@ class BarcodeTests(unittest.TestCase):
             "nutriments": {"proteins_100g": 8},
         }, "1234567890123")
         self.assertEqual(result["product_name"], "Example")
-        self.assertEqual(result["nutrition_per_100g"]["protein"], {"value": 8.0, "unit": "g"})
+        self.assertEqual(result["nutrition_per_100g"]["protein"]["value"], 8.0)
         self.assertEqual(result["allergens_tags"], ["en:gluten"])
         self.assertNotIn("debug_raw_nutriments", result)
 
@@ -68,9 +125,9 @@ class BarcodeTests(unittest.TestCase):
             client = client_cls.return_value.__aenter__.return_value
             client.get = AsyncMock(return_value=response)
             result = __import__("asyncio").run(fetch_open_food_facts_product("1234567890123"))
-        self.assertEqual(client.get.await_count, 1)
+        self.assertEqual(client.get.await_count, 2)
         self.assertEqual(result["nutrition_source"], "open_food_facts_v3.6")
-        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"], {"value": 100.0, "unit": "kcal"})
+        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"]["value"], 100.0)
 
     def test_empty_v3_nutrition_falls_back_to_v2(self):
         v3 = self._response({"status": "success", "product": {
@@ -87,8 +144,8 @@ class BarcodeTests(unittest.TestCase):
         self.assertEqual(client.get.await_count, 2)
         self.assertEqual(result["product_name"], "Nutella")
         self.assertEqual(result["nutrition_source"], "open_food_facts_v2_fallback")
-        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"], {"value": 539.0, "unit": "kcal"})
-        self.assertEqual(result["nutrition_per_100g"]["sodium"], {"value": 43.0, "unit": "mg"})
+        self.assertEqual(result["nutrition_per_100g"]["energy_kcal"]["value"], 539.0)
+        self.assertEqual(result["nutrition_per_100g"]["sodium"]["value"], 43.0)
         self.assertNotIn("debug_raw_nutriments", result)
 
     def test_missing_nutrition_stays_missing(self):

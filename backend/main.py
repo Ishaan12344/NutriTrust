@@ -2,7 +2,7 @@ import logging
 import re
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,6 +12,7 @@ from nutrition_normalizer import normalize_nutrition
 from nutrition_parser import parse_food_label
 from open_food_facts_service import fetch_open_food_facts_product
 from sarvam_ocr import extract_text_from_image
+from scoring_service import rate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +31,18 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    logger.info("incoming request: %s %s", request.method, request.url.path)
+    try:
+        response = await call_next(request)
+        logger.info("request complete: %s %s -> %s", request.method, request.url.path, response.status_code)
+        return response
+    except Exception:
+        logger.exception("request failed: %s %s", request.method, request.url.path)
+        raise
 
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_TYPES = {"image/jpeg", "image/png"}
@@ -54,6 +67,31 @@ def _identity_conflicts(food_label: dict, off_data: dict) -> list[str]:
     return conflicts
 
 
+def _scoring_input_from_merged(merged_product: dict) -> dict:
+    nutrition = merged_product.get("nutrition") if isinstance(merged_product.get("nutrition"), dict) else {}
+    product = merged_product.get("product") if isinstance(merged_product.get("product"), dict) else {}
+    ingredients = merged_product.get("ingredients") if isinstance(merged_product.get("ingredients"), dict) else {}
+    classification = merged_product.get("classification") if isinstance(merged_product.get("classification"), dict) else {}
+    sources = merged_product.get("data_sources") if isinstance(merged_product.get("data_sources"), dict) else {}
+    per_100g = nutrition.get("per_100g") if isinstance(nutrition.get("per_100g"), dict) else {}
+    serving_info = nutrition.get("ocr_normalization", {}).get("serving_size", {}) if isinstance(nutrition.get("ocr_normalization"), dict) else {}
+    return {
+        "product": product,
+        "nutrition_per_100g": per_100g,
+        "nutrition_per_serving": nutrition.get("per_serving", {}),
+        "ingredients_text": ingredients.get("text"),
+        "additives_tags": classification.get("additives_tags", []),
+        "additives_count": classification.get("additives_count"),
+        "additives_available": sources.get("additives") is not None or bool(
+            re.search(r"\bE\s*\d{3,4}[A-Z]?\b", ingredients.get("text") or "", re.IGNORECASE)
+        ),
+        "nova_group": classification.get("nova_group"),
+        "nova_source": sources.get("nova_group"),
+        "nutrition_conflicts": nutrition.get("conflicts", []),
+        "serving_size_available": bool(serving_info.get("weight_g")),
+    }
+
+
 @app.get("/")
 def root():
     return {
@@ -72,6 +110,7 @@ async def scan_food_label(
     file: UploadFile = File(...),
     barcode: str | None = None,
 ):
+    logger.info("OCR endpoint started: filename=%s content_type=%s barcode_supplied=%s", file.filename, file.content_type, bool(barcode))
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=415,
@@ -99,8 +138,11 @@ async def scan_food_label(
             file.filename or "food-label.jpg",
             file.content_type,
         )
+        logger.info("OCR completed: job_id=%s status=%s text_length=%s", result.get("job_id"), result.get("status"), len(result.get("text") or ""))
 
+        logger.info("parsing OCR label")
         food_label = parse_food_label(result["text"])
+        logger.info("normalizing nutrition")
         normalized_nutrition = normalize_nutrition(food_label)
 
         off_data = None
@@ -110,9 +152,11 @@ async def scan_food_label(
         merge_off_data = None
 
         if barcode:
+            logger.info("starting Open Food Facts lookup for supplied barcode")
             off_request_status = "found"
             try:
                 off_data = await fetch_open_food_facts_product(barcode)
+                logger.info("Open Food Facts lookup complete: found=%s", off_data.get("found"))
 
                 if not off_data.get("found"):
                     off_request_status = "not_found"
@@ -139,7 +183,12 @@ async def scan_food_label(
                         identity_match_status = (
                             "matched_by_label" if has_comparable_identity else "barcode_supplied_unverified"
                         )
-                        merge_off_data = off_data
+                        if has_comparable_identity:
+                            merge_off_data = off_data
+                        else:
+                            integration_warnings.append(
+                                "Open Food Facts data was not merged because the scanned label did not provide a comparable product name or brand for identity verification."
+                            )
 
             except ValueError as exc:
                 off_request_status = "invalid_barcode"
@@ -174,7 +223,11 @@ async def scan_food_label(
             normalized_nutrition=normalized_nutrition,
             off_data=merge_off_data,
         )
+        logger.info("merged OCR and external data")
         health_analysis = analyze_product_health(merged_product)
+        scoring = rate(_scoring_input_from_merged(merged_product))
+        logger.info("NutriTrust score result: eligibility=%s overall=%s", scoring["data_sufficiency"]["scoring_eligibility"], scoring["scores"]["overall"])
+        logger.info("health analysis complete: status=%s findings=%s", health_analysis.get("analysis_status"), len(health_analysis.get("findings", [])))
 
         missing_data_warnings = []
         if not merged_product["product"].get("name"):
@@ -231,11 +284,12 @@ async def scan_food_label(
             "conflicts": merged_product["nutrition"]["conflicts"],
             "missing_data_warnings": missing_data_warnings,
             "health_analysis": health_analysis,
+            "scoring": scoring,
             "warnings": analysis_warnings,
             "needs_review": merged_product["needs_review"] or health_analysis["needs_review"] or bool(analysis_warnings),
         }
 
-        return {
+        response_payload = {
             "success": True,
             "filename": file.filename,
             "ocr": {
@@ -249,8 +303,11 @@ async def scan_food_label(
             "merged_product": merged_product,
             "product_analysis": product_analysis,
             "health_analysis": health_analysis,
+            "scoring": scoring,
             "integration_warnings": integration_warnings,
         }
+        logger.info("OCR response ready: needs_review=%s warnings=%s", product_analysis["needs_review"], len(analysis_warnings))
+        return response_payload
 
     except HTTPException:
         raise
@@ -282,12 +339,30 @@ async def scan_food_label(
 
 @app.get("/api/v1/open-food-facts/{barcode}")
 async def get_open_food_facts_product(barcode: str):
+    logger.info("barcode endpoint started: barcode_length=%s", len(barcode))
     try:
         data = await fetch_open_food_facts_product(barcode)
+        logger.info("barcode endpoint lookup complete: found=%s", data.get("found"))
+        scoring = rate({
+            "product": {
+                "barcode": data.get("barcode"),
+                "name": data.get("product_name"),
+                "brands": data.get("brands"),
+                "categories": data.get("categories"),
+            },
+            "nutrition_per_100g": data.get("nutrition_per_100g", {}),
+            "ingredients_text": data.get("ingredients_text"),
+            "additives_tags": data.get("additives_tags", []),
+            "additives_count": data.get("additives_count"),
+            "additives_available": data.get("additives_available"),
+            "nova_group": data.get("nova_group"),
+            "nova_source": data.get("nova_source"),
+        })
 
         return {
             "success": True,
             "data": data,
+            "scoring": scoring,
         }
 
     except ValueError as exc:

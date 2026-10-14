@@ -1,5 +1,6 @@
 
 import io
+import logging
 import os
 import time
 import zipfile
@@ -20,6 +21,7 @@ if not API_KEY:
     )
 
 client = SarvamAI(api_subscription_key=API_KEY)
+logger = logging.getLogger(__name__)
 
 TERMINAL_STATES = {
     "completed",
@@ -39,6 +41,7 @@ def extract_text_from_image(
     filename: str,
     content_type: str,
 ) -> dict:
+    logger.info("starting Sarvam OCR: filename=%s type=%s bytes=%s", filename, content_type, len(image_bytes))
     if content_type not in SUPPORTED_TYPES:
         raise ValueError("Only JPG, JPEG and PNG images are supported.")
 
@@ -62,12 +65,15 @@ def extract_text_from_image(
             f"Sarvam rejected the OCR request (HTTP {exc.status_code})."
         ) from exc
 
+    logger.info("Sarvam OCR job created: job_id=%s", job.job_id)
+
     deadline = time.monotonic() + 180
 
     try:
         while True:
             status = client.doc_ai.get_status(job_id=job.job_id)
             state = status.status.lower()
+            logger.info("Sarvam OCR poll: job_id=%s status=%s", job.job_id, state)
 
             if state in TERMINAL_STATES:
                 break
@@ -87,6 +93,7 @@ def extract_text_from_image(
         download = client.doc_ai.get_download_url(
             job_id=job.job_id
         )
+        logger.info("Sarvam OCR completed; downloading output: job_id=%s", job.job_id)
 
         response = requests.request(
             method=download.method,

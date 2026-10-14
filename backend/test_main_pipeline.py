@@ -143,6 +143,7 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
     def test_ocr_wins_conflict_and_off_alternative_is_retained(self):
         off = {
             "found": True, "barcode": "1234567890123", "nutrition_basis": "per_100g",
+            "product_name": "Sample Bar",
             "nutrition_per_100g": {"total_fat": {"value": 9.0, "unit": "g"}},
         }
         response, _ = self.request_analysis(barcode="1234567890123", off_result=off)
@@ -152,6 +153,18 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
         conflict = analysis["conflicts"][0]
         self.assertEqual(conflict["selected_source"], "ocr_label")
         self.assertEqual(conflict["open_food_facts_value"], 9.0)
+
+    def test_off_is_not_merged_when_label_identity_cannot_be_verified(self):
+        off = {
+            "found": True,
+            "barcode": "1234567890123",
+            "nutrition_per_100g": {"total_fat": {"value": 9.0, "unit": "g"}},
+        }
+        response, _ = self.request_analysis(barcode="1234567890123", off_result=off)
+        analysis = response.json()["product_analysis"]
+        self.assertEqual(analysis["open_food_facts"]["identity_match_status"], "barcode_supplied_unverified")
+        self.assertFalse(analysis["open_food_facts"]["used_for_merge"])
+        self.assertEqual(analysis["nutrition"]["per_100g"]["total_fat"]["value"], 5.0)
 
     def test_missing_data_remains_missing_and_allergen_status_is_unknown(self):
         response, _ = self.request_analysis(text="Product wrapper text only")

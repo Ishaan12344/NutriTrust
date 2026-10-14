@@ -22,8 +22,12 @@ def _normalize_off_nutrition(value: Any) -> dict[str, dict[str, Any]]:
             normalized[nutrient] = {
                 "value": item["value"],
                 "unit": item.get("unit"),
-                "source": "open_food_facts",
+                "basis": item.get("basis", "per_100g"),
+                "source": item.get("source", "open_food_facts"),
             }
+            for key in ("status", "modifier", "evidence"):
+                if item.get(key) is not None:
+                    normalized[nutrient][key] = item[key]
     return normalized
 
 
@@ -73,6 +77,7 @@ def merge_product_data(
     ocr_per_100g = norm.get("per_100g") if isinstance(norm.get("per_100g"), dict) else {}
     ocr_per_serving = norm.get("per_serving") if isinstance(norm.get("per_serving"), dict) else {}
     off_per_100g = _normalize_off_nutrition(off.get("nutrition_per_100g"))
+    off_per_serving = _normalize_off_nutrition(off.get("nutrition_per_serving"))
 
     per_100g: dict[str, dict[str, Any]] = {}
     nutrition_conflicts: list[dict[str, Any]] = []
@@ -81,7 +86,7 @@ def merge_product_data(
         off_value = off_per_100g.get(nutrient)
         if label_value is not None:
             unit = "kcal" if nutrient == "energy_kcal" else ("mg" if nutrient in {"sodium", "cholesterol", "calcium", "iron", "potassium"} else "g")
-            per_100g[nutrient] = {"value": label_value, "unit": unit, "source": "ocr_label"}
+            per_100g[nutrient] = {"value": label_value, "unit": unit, "basis": "per_100g", "source": "ocr_label"}
             if off_value is not None:
                 try:
                     differs = abs(float(label_value) - float(off_value["value"])) > max(0.5, abs(float(label_value)) * 0.05)
@@ -101,10 +106,14 @@ def merge_product_data(
             per_100g[nutrient] = off_value
 
     per_serving: dict[str, dict[str, Any]] = {}
-    for nutrient, value in ocr_per_serving.items():
-        if value is not None:
+    for nutrient in sorted(set(ocr_per_serving) | set(off_per_serving)):
+        label_value = ocr_per_serving.get(nutrient)
+        off_value = off_per_serving.get(nutrient)
+        if label_value is not None:
             unit = "kcal" if nutrient == "energy_kcal" else ("mg" if nutrient in {"sodium", "cholesterol", "calcium", "iron", "potassium"} else "g")
-            per_serving[nutrient] = {"value": value, "unit": unit, "source": "ocr_label"}
+            per_serving[nutrient] = {"value": label_value, "unit": unit, "basis": "per_serving", "source": "ocr_label"}
+        elif off_value is not None:
+            per_serving[nutrient] = off_value
 
     product_name, product_name_source = choose(label.get("product_name"), off.get("product_name"))
     brands, brands_source = choose(label.get("brand"), off.get("brands"))
@@ -128,7 +137,7 @@ def merge_product_data(
         "allergen_database_tags": "open_food_facts" if _has_value(off.get("allergens_tags")) else None,
         "trace_database_tags": "open_food_facts" if _has_value(off.get("traces_tags")) else None,
         "nutrition_per_100g": "merged" if per_100g else None,
-        "nutrition_per_serving": "ocr_label" if per_serving else None,
+        "nutrition_per_serving": "merged" if per_serving else None,
         "nova_group": "open_food_facts" if off.get("nova_group") is not None else None,
         "nutriscore_grade": "open_food_facts" if _has_value(off.get("nutriscore_grade")) else None,
         "environmental_score_grade": "open_food_facts" if _has_value(off.get("environmental_score_grade")) else None,
@@ -186,6 +195,14 @@ def merge_product_data(
         "classification": {
             "nova_group": off.get("nova_group"),
             "nutriscore_grade": off.get("nutriscore_grade"),
+            "nutriscore": {
+                "reported_grade": off.get("nutriscore_grade"),
+                "source": "open_food_facts" if _has_value(off.get("nutriscore_grade")) else None,
+                "reported_algorithm_version": off.get("nutriscore_version"),
+                "calculated_status": "not_calculated",
+                "algorithm_version": None,
+                "note": "The NutriTrust component score is not an official Nutri-Score calculation.",
+            },
             "environmental_score_grade": off.get("environmental_score_grade"),
             "additives_count": off.get("additives_count"),
             "additives_tags": off.get("additives_tags", []),
