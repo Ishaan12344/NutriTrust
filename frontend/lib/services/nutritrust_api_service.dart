@@ -44,7 +44,7 @@ class NutriTrustApiService {
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       // Physical Android development uses `adb reverse tcp:8000 tcp:8000`.
-      // Use NUTRITRUST_API_BASE_URL=http://10.0.2.2:8000 for an emulator.
+      // Emulators should pass http://10.0.2.2:8000 via NUTRITRUST_API_BASE_URL.
       return 'http://127.0.0.1:8000';
     }
     return 'http://127.0.0.1:8000';

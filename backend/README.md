@@ -100,7 +100,8 @@ fields.
 - `SARVAM_API_KEY is missing`: copy `.env.example` to `.env` and configure the
   key before using the OCR endpoint.
 - Barcode lookup timeout: retry later; OCR-only analysis remains available.
-- Android emulator: configure Flutter with
+- Android emulator: start Flutter with
   `--dart-define=NUTRITRUST_API_BASE_URL=http://10.0.2.2:8000`.
-- Physical Android device: use `adb reverse tcp:8000 tcp:8000` or configure a
-  reachable API URL.
+- Physical Android device: use `adb reverse tcp:8000 tcp:8000`, or start the
+  backend on a reachable LAN interface and pass its address with
+  `--dart-define=NUTRITRUST_API_BASE_URL=http://192.168.x.x:8000`.

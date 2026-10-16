@@ -5,11 +5,16 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/health_profile.dart';
 import '../services/nutritrust_api_service.dart';
+import '../widgets/personalized_insights.dart';
 import 'barcode_scanner_screen.dart';
+import 'personal_health_input_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.profile});
+
+  final HealthProfile? profile;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -104,6 +109,14 @@ class _HomeScreenState extends State<HomeScreen> {
       Text('Understand what you eat.', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 8),
       const Text('Scan a product barcode or upload its food label to explore its ingredients and nutrition.'),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => PersonalHealthInputScreen(initialProfile: widget.profile)),
+        ),
+        icon: const Icon(Icons.tune),
+        label: Text(widget.profile?.hasInformation == true ? 'Edit nutrition preferences' : 'Personalize your nutrition'),
+      ),
       const SizedBox(height: 24),
       FilledButton.icon(onPressed: _isLoading ? null : _scanBarcode, icon: const Icon(Icons.qr_code_scanner), label: const Text('Scan product barcode')),
       const SizedBox(height: 12),
@@ -121,14 +134,15 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 20), Text(_error!, style: TextStyle(color: Colors.red)),
         TextButton.icon(onPressed: _labelImage == null ? _scanBarcode : _analyzeImage, icon: const Icon(Icons.refresh), label: const Text('Retry')),
       ],
-      if (_analysis != null) ...[const SizedBox(height: 24), NutritionReport(response: _analysis!)],
+      if (_analysis != null) ...[const SizedBox(height: 24), NutritionReport(response: _analysis!, profile: widget.profile)],
     ])),
   );
 }
 
 class NutritionReport extends StatelessWidget {
-  const NutritionReport({super.key, required this.response});
+  const NutritionReport({super.key, required this.response, this.profile});
   final Map<String, dynamic> response;
+  final HealthProfile? profile;
   Map<String, dynamic> _map(Object? value) => value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
   List<Object?> _list(Object? value) => value is List ? value : <Object?>[];
   String _text(Object? value) => value == null || value.toString().trim().isEmpty ? 'Not available' : value.toString();
@@ -172,6 +186,10 @@ class NutritionReport extends StatelessWidget {
       if (_text(_map(analysis['data_quality'])['status']) != 'Not available')
         Text('Data quality: ${_map(analysis['data_quality'])['status']}'),
       const SizedBox(height: 16),
+      if (profile?.hasInformation == true) ...[
+        PersonalizedInsights(profile: profile!, analysis: analysis),
+        const SizedBox(height: 12),
+      ],
       _section(context, 'Energy', [_metric('Calories', serving['energy_kcal'], per100['energy_kcal'], dv['energy_kcal'])]),
       _section(context, 'Macronutrients', [
         _metric('Total fat', serving['total_fat'], per100['total_fat'], dv['total_fat']),
