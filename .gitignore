@@ -38,3 +38,6 @@ __pycache__/
 # Ignore all CSV files
 *.csv
 ml_model
+backend/data/users.json
+backend/data/scans.json
+backend/data/products.json

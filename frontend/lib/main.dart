@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 
-import 'screens/personal_health_input_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +27,7 @@ class NutriTrustApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF8FAF8),
         appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF8FAF8)),
       ),
-      home: const PersonalHealthInputScreen(),
+      home: const LoginScreen(),
     );
   }
 }

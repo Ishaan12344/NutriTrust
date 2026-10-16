@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/health_profile.dart';
+import '../services/nutritrust_api_service.dart';
 import 'home_screen.dart';
 
 class PersonalHealthInputScreen extends StatefulWidget {
-  const PersonalHealthInputScreen({super.key, this.initialProfile});
+  const PersonalHealthInputScreen({super.key, this.initialProfile, this.username});
 
   final HealthProfile? initialProfile;
+  final String? username;
 
   @override
   State<PersonalHealthInputScreen> createState() =>
@@ -30,6 +32,8 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
   ];
 
   late final TextEditingController _age;
+  late final TextEditingController _name;
+  late final TextEditingController _weight;
   late final TextEditingController _allergyOther;
   late final TextEditingController _conditionOther;
   late Set<String> _allergies;
@@ -37,12 +41,16 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
   late Set<String> _preferences;
   String? _gender;
   String? _ageError;
+  String? _weightError;
+  final _api = NutriTrustApiService();
 
   @override
   void initState() {
     super.initState();
     final profile = widget.initialProfile;
     _age = TextEditingController(text: profile?.age?.toString() ?? '');
+    _name = TextEditingController(text: profile?.name ?? '');
+    _weight = TextEditingController(text: profile?.weight != null ? profile!.weight.toString() : '');
     _allergyOther = TextEditingController(text: profile?.allergyOther ?? '');
     _conditionOther = TextEditingController(text: profile?.conditionOther ?? '');
     _allergies = {...?profile?.allergies};
@@ -54,8 +62,11 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
   @override
   void dispose() {
     _age.dispose();
+    _name.dispose();
+    _weight.dispose();
     _allergyOther.dispose();
     _conditionOther.dispose();
+    _api.close();
     super.dispose();
   }
 
@@ -101,8 +112,21 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
       return null;
     }
     setState(() => _ageError = null);
+
+    final rawWeight = _weight.text.trim();
+    final weight = rawWeight.isEmpty ? null : double.tryParse(rawWeight);
+    if (rawWeight.isNotEmpty && (weight == null || weight < 1 || weight > 500)) {
+      setState(() => _weightError = 'Enter a valid weight in kg (1 to 500), or leave it blank.');
+      return null;
+    }
+    setState(() => _weightError = null);
+
+    final name = _name.text.trim();
+
     return HealthProfile(
+      name: name.isEmpty ? null : name,
       age: age,
+      weight: weight,
       gender: _gender,
       allergies: Set.unmodifiable(_allergies),
       allergyOther: _allergies.contains('Other') ? _allergyOther.text.trim() : null,
@@ -112,11 +136,23 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
     );
   }
 
-  void _continueToAnalysis({bool skip = false}) {
+  void _continueToAnalysis({bool skip = false}) async {
     final profile = skip ? null : _validatedProfile();
     if (!skip && profile == null) return;
+
+    if (widget.username != null && profile != null) {
+      try {
+        await _api.updateProfile(widget.username!, profile);
+      } catch (_) {
+        // Silently continue if offline or network glitch
+      }
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => HomeScreen(profile: profile)),
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(profile: profile, username: widget.username),
+      ),
       (route) => false,
     );
   }
@@ -167,6 +203,17 @@ class _PersonalHealthInputScreenState extends State<PersonalHealthInputScreen> {
               controller: _age,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Age (optional)', errorText: _ageError, border: const OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Full name (optional)', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _weight,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(labelText: 'Weight in kg (optional)', errorText: _weightError, border: const OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(

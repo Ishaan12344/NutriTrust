@@ -25,6 +25,8 @@ class Settings:
     sarvam_timeout_seconds: int
     sarvam_download_timeout_seconds: int
     open_food_facts_timeout_seconds: float
+    mongodb_uri: str
+    mongodb_db_name: str
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -53,4 +55,6 @@ def get_settings() -> Settings:
         sarvam_timeout_seconds=_positive_int("NUTRITRUST_SARVAM_TIMEOUT_SECONDS", 180),
         sarvam_download_timeout_seconds=_positive_int("NUTRITRUST_SARVAM_DOWNLOAD_TIMEOUT_SECONDS", 60),
         open_food_facts_timeout_seconds=_positive_float("NUTRITRUST_OFF_TIMEOUT_SECONDS", 10.0),
+        mongodb_uri=os.getenv("MONGODB_URI", "mongodb://localhost:27017").strip(),
+        mongodb_db_name=os.getenv("MONGODB_DB_NAME", "nutritrust").strip(),
     )

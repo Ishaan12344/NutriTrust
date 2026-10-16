@@ -29,8 +29,12 @@ class ApiContractTests(unittest.TestCase):
     def test_openapi_documents_flutter_routes(self):
         response = self.request("GET", "/openapi.json")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("/api/v1/ocr", response.json()["paths"])
-        self.assertIn("/api/v1/open-food-facts/{barcode}", response.json()["paths"])
+        paths = response.json()["paths"]
+        self.assertIn("/api/v1/ocr", paths)
+        self.assertIn("/api/v1/open-food-facts/{barcode}", paths)
+        self.assertIn("/api/v1/auth/register", paths)
+        self.assertIn("/api/v1/auth/login", paths)
+        self.assertIn("/api/v1/user/profile", paths)
 
     def test_ocr_rejects_unsupported_content_type_before_external_work(self):
         response = self.request(
