@@ -30,3 +30,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+.venv/
+__pycache__/
+.env
+*.py[cod]
+# Ignore all CSV files
+*.csv
+ml_model
