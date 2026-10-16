@@ -35,3 +35,6 @@ Thumbs.db
 __pycache__/
 .env
 *.py[cod]
+# Ignore all CSV files
+*.csv
+ml_model
