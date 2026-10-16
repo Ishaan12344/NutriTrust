@@ -1,26 +1,17 @@
 
 import io
 import logging
-import os
 import time
 import zipfile
+from functools import lru_cache
 from pathlib import PurePosixPath
 
 import requests
-from dotenv import load_dotenv
 from sarvamai import SarvamAI
 from sarvamai.core.api_error import ApiError
 
-load_dotenv()
+from app_config import get_settings
 
-API_KEY = os.getenv("SARVAM_API_KEY")
-
-if not API_KEY:
-    raise RuntimeError(
-        "SARVAM_API_KEY is missing. Add it to backend/.env."
-    )
-
-client = SarvamAI(api_subscription_key=API_KEY)
 logger = logging.getLogger(__name__)
 
 TERMINAL_STATES = {
@@ -36,6 +27,20 @@ SUPPORTED_TYPES = {
 }
 
 
+@lru_cache
+def _get_client() -> SarvamAI:
+    """Create the SDK client only when OCR is actually requested.
+
+    This keeps health checks and barcode lookup available when an OCR key has
+    not been configured, while still failing the OCR request with an actionable
+    error instead of sending an unauthenticated request.
+    """
+    api_key = get_settings().sarvam_api_key
+    if not api_key:
+        raise RuntimeError("SARVAM_API_KEY is missing. Add it to backend/.env.")
+    return SarvamAI(api_subscription_key=api_key)
+
+
 def extract_text_from_image(
     image_bytes: bytes,
     filename: str,
@@ -47,6 +52,10 @@ def extract_text_from_image(
 
     if not image_bytes:
         raise ValueError("The uploaded image is empty.")
+
+    client = _get_client()
+    timeout_seconds = get_settings().sarvam_timeout_seconds
+    download_timeout_seconds = get_settings().sarvam_download_timeout_seconds
 
     # Sarvam's SDK accepts a list of file tuples.
     try:
@@ -67,7 +76,7 @@ def extract_text_from_image(
 
     logger.info("Sarvam OCR job created: job_id=%s", job.job_id)
 
-    deadline = time.monotonic() + 180
+    deadline = time.monotonic() + timeout_seconds
 
     try:
         while True:
@@ -98,7 +107,7 @@ def extract_text_from_image(
         response = requests.request(
             method=download.method,
             url=download.url,
-            timeout=60,
+            timeout=download_timeout_seconds,
         )
         response.raise_for_status()
 

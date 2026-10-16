@@ -167,9 +167,11 @@ class NutritionReport extends StatelessWidget {
       Text(_text(product['name']), style: Theme.of(context).textTheme.headlineSmall),
       if (_text(product['brands']) != 'Not available') Text('Brand: ${product['brands']}'),
       if (_text(product['barcode'] ?? requestedBarcode) != 'Not available') Text('Barcode: ${product['barcode'] ?? requestedBarcode}'),
+      if (_text(product['categories']) != 'Not available') Text('Category: ${product['categories']}'),
       if (_text(normServing['text']) != 'Not available') Text('Serving size: ${normServing['text']}'),
+      if (_text(_map(analysis['data_quality'])['status']) != 'Not available')
+        Text('Data quality: ${_map(analysis['data_quality'])['status']}'),
       const SizedBox(height: 16),
-      if (scoring.isNotEmpty) _buildScoringSection(context, scoring, classification),
       _section(context, 'Energy', [_metric('Calories', serving['energy_kcal'], per100['energy_kcal'], dv['energy_kcal'])]),
       _section(context, 'Macronutrients', [
         _metric('Total fat', serving['total_fat'], per100['total_fat'], dv['total_fat']),
@@ -188,21 +190,17 @@ class NutritionReport extends StatelessWidget {
         _metric('Iron', serving['iron'], per100['iron'], dv['iron']),
         _metric('Potassium', serving['potassium'], per100['potassium'], dv['potassium']),
       ]),
+      if (scoring.isNotEmpty) _buildBarcodeAssessmentSections(context, scoring, classification),
       _section(context, 'Ingredients and allergens', [
         if (_text(ingredients['text']) != 'Not available') Text('Ingredients: ${ingredients['text']}'),
         Text('Declared allergens: ${_list(allergens['declared']).isEmpty ? 'Unknown — no declaration was identified' : _list(allergens['declared']).join(', ')}'),
         if (_text(_map(allergens['precautionary_traces'])['text']) != 'Not available')
           Text('May contain: ${_map(allergens['precautionary_traces'])['text']}'),
       ]),
-      _section(context, 'Health analysis', [
+      _section(context, 'Data quality and missing information', [
         const Text('Nutrient observations and label findings; the NutriTrust composite score is shown separately.'),
         Text('Ruleset: ${_text(_map(health['ruleset'])['scope'])}'),
         ...findings.map((item) => ListTile(contentPadding: EdgeInsets.zero, title: Text(_text(item['id'])), subtitle: Text(_text(item['explanation'])), trailing: Text(_text(item['category'])))),
-      ]),
-      if (classification.isNotEmpty) _section(context, 'Reported classifications', [
-        if (_text(classification['nutriscore_grade']) != 'Not available') Text('Reported Nutri-Score: ${classification['nutriscore_grade']} (Open Food Facts)'),
-        if (classification['nova_group'] != null) Text('Reported NOVA group: ${classification['nova_group']} (Open Food Facts)'),
-        if (_text(classification['environmental_score_grade']) != 'Not available') Text('Environmental score: ${classification['environmental_score_grade']}'),
       ]),
       if (warnings.isNotEmpty) _section(context, 'Data quality and warnings', warnings.map((w) => Text('• ${_text(w)}')).toList()),
     ]);
@@ -223,6 +221,67 @@ class NutritionReport extends StatelessWidget {
         ]),
       ),
     );
+  }
+
+  /// Renders server-calculated barcode assessments in the user-facing order.
+  /// No score is recomputed in Flutter.
+  Widget _buildBarcodeAssessmentSections(
+    BuildContext context,
+    Map<String, dynamic> scoring,
+    Map<String, dynamic> classification,
+  ) {
+    final scores = _map(scoring['scores']);
+    final sufficiency = _map(scoring['data_sufficiency']);
+    final limits = _map(scores['nutrient_limits']);
+    final nova = _map(scores['nova_processing']);
+    final additives = _map(scores['additive_safety']);
+    final trafficLights = _map(limits['traffic_lights']);
+    final missing = _list(sufficiency['missing']);
+    final unavailable = _list(sufficiency['unavailable_components']);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _section(context, 'Nutri-Score (reported)', [
+        Text(classification['nutriscore_grade'] == null
+            ? 'Unavailable: Open Food Facts did not report a Nutri-Score grade.'
+            : 'Reported Nutri-Score: ${classification['nutriscore_grade']} (Open Food Facts)'),
+        Text('Algorithm version: ${_text(_map(classification['nutriscore'])['reported_algorithm_version'])}'),
+        const Text('Source: Open Food Facts. NutriTrust does not calculate an official Nutri-Score.'),
+      ]),
+      _section(context, 'UK Traffic Light System', [
+        Text(_text(limits['details'])),
+        ...['total_fat', 'saturated_fat', 'sugar', 'salt'].map((key) {
+          final item = _map(trafficLights[key]);
+          if (item.isEmpty) return Text('${key.replaceAll('_', ' ')}: unavailable');
+          final thresholds = _map(item['thresholds']);
+          final thresholdText = thresholds.isEmpty
+              ? ''
+              : '; green <= ${thresholds['green']}, amber <= ${thresholds['amber']} ${item['unit']}';
+          return Text('${key.replaceAll('_', ' ')}: ${item['value'] == null ? 'unavailable' : '${_number(item['value'])} ${item['unit']}'} — ${_text(item['color'])}$thresholdText');
+        }),
+      ]),
+      _section(context, 'NOVA Classification', [
+        Text(nova['nova_group'] == null
+            ? 'Unavailable: ${_text(nova['details'])}'
+            : 'Group ${nova['nova_group']} (${_text(nova['source'])})'),
+        Text(_text(nova['details'])),
+        if (_list(nova['markers_found']).isNotEmpty)
+          Text('Observed markers: ${_list(nova['markers_found']).join(', ')}'),
+      ]),
+      _section(context, 'Additive Safety Analysis', [
+        Text('Status: ${_text(additives['status'])}'),
+        Text(_text(additives['details'])),
+        ..._list(additives['flagged_additives']).map((item) => Text(_text(item))),
+      ]),
+      _section(context, 'Overall NutriTrust Score', [
+        Text('Overall: ${scores['overall'] == null ? 'Not calculated' : '${_number(scores['overall'])}/100'}'),
+        Text('Grade: ${_text(scores['grade'])} — ${_text(scores['grade_label'])}'),
+        Text(_text(scoring['explanation'])),
+        Text('Formula: ${_text(scoring['formula_version'])}; data sufficiency: ${_text(sufficiency['status'])}${missing.isEmpty ? '' : ' (${missing.join(', ')})'}'),
+        Text('Nutrition completeness: ${_text(_map(sufficiency['nutrition'])['status'])}; reliability: ${_text(sufficiency['score_confidence'])}.'),
+        if (unavailable.isNotEmpty)
+          Text('Unavailable score components: ${unavailable.join(', ')}. Available components were reweighted.'),
+        const Text('This is NutriTrust’s custom comparison score, not an official government or Nutri-Score rating.'),
+      ]),
+    ]);
   }
 
   Widget _buildScoringSection(BuildContext context, Map<String, dynamic> scoring, Map<String, dynamic> classification) {

@@ -126,6 +126,11 @@ class NutriTrustApiService {
           'The backend response is missing product data. Please retry.',
         );
       }
+      // Newer backends return the canonical analysis generated on the server.
+      // Keep the adapter below for a rolling upgrade with an older backend.
+      if (body['product_analysis'] is Map) {
+        return body;
+      }
       return _barcodeResponse(body, Map<String, dynamic>.from(body['data'] as Map));
     } on TimeoutException catch (error, stackTrace) {
       developer.log('barcode request timeout', name: 'nutritrust.api', error: error, stackTrace: stackTrace);

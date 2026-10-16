@@ -11,6 +11,8 @@ from typing import Any
 
 import httpx
 
+from app_config import get_settings
+
 BASE_URL = "https://world.openfoodfacts.org/api/v3.6/product"
 NUTRITION_FALLBACK_URL = "https://world.openfoodfacts.org/api/v2/product"
 
@@ -233,7 +235,7 @@ def _normalize_product(product: dict[str, Any], requested_barcode: str) -> dict[
 async def fetch_open_food_facts_product(
     barcode: str,
     *,
-    timeout_seconds: float = 10.0,
+    timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Fetch a single product by barcode and return a normalized result.
 
@@ -241,6 +243,7 @@ async def fetch_open_food_facts_product(
     Product-not-found is returned as {"found": False, ...}, not raised.
     """
     code = _clean_barcode(barcode)
+    timeout_seconds = timeout_seconds if timeout_seconds is not None else get_settings().open_food_facts_timeout_seconds
     user_agent = os.getenv("NUTRITRUST_OFF_USER_AGENT", DEFAULT_USER_AGENT)
     if "configure-NUTRITRUST_CONTACT" in user_agent:
         # Still usable during local development, but configure a real contact before release.

@@ -38,18 +38,19 @@ class ScoringServiceTests(unittest.TestCase):
         self.assertIn("traffic_lights", result["scores"]["nutrient_limits"])
         self.assertEqual(result["scores"]["additive_safety"]["status"], "known")
 
-    def test_missing_required_nutrients_do_not_become_zero_or_score(self):
+    def test_missing_required_nutrients_do_not_become_zero_and_partial_score_is_reweighted(self):
         result = rate({
             "nutrition_per_100g": {"energy_kcal": 100, "total_fat": 1, "saturated_fat": 0},
             "ingredients_text": "flour",
             "additives_available": True,
         })
 
-        self.assertIsNone(result["scores"]["overall"])
+        self.assertEqual(result["scores"]["overall"], 100)
         self.assertEqual(result["data_sufficiency"]["status"], "partial")
-        self.assertEqual(result["data_sufficiency"]["scoring_eligibility"], "ineligible")
+        self.assertEqual(result["data_sufficiency"]["scoring_eligibility"], "eligible_partial")
         self.assertIn("sugar", result["data_sufficiency"]["missing"])
         self.assertIn("sodium", result["data_sufficiency"]["missing"])
+        self.assertEqual(result["effective_weights"]["nutrient_limits"], 1.0)
 
     def test_genuine_zero_is_retained_as_measured(self):
         nutrition = dict(COMPLETE_NUTRITION, sugar=0, sodium=0)
@@ -70,9 +71,10 @@ class ScoringServiceTests(unittest.TestCase):
             "additives_available": False,
         })
 
-        self.assertIsNone(result["scores"]["overall"])
+        self.assertIsInstance(result["scores"]["overall"], int)
         self.assertEqual(result["scores"]["additive_safety"]["status"], "unavailable")
         self.assertIn("additive information", result["data_sufficiency"]["missing"])
+        self.assertIn("additive_safety", result["data_sufficiency"]["unavailable_components"])
 
     def test_unknown_nova_is_unavailable_despite_markers(self):
         result = rate({
@@ -88,7 +90,8 @@ class ScoringServiceTests(unittest.TestCase):
 
         self.assertEqual(result["scores"]["nova_processing"]["source"], "unavailable")
         self.assertIsNone(result["scores"]["nova_processing"]["nova_group"])
-        self.assertIsNone(result["scores"]["overall"])
+        self.assertIsInstance(result["scores"]["overall"], int)
+        self.assertIn("nova_processing", result["data_sufficiency"]["unavailable_components"])
 
     def test_gulab_jamun_regression_score_has_breakdown(self):
         result = rate({
@@ -114,7 +117,7 @@ class ScoringServiceTests(unittest.TestCase):
         self.assertEqual(result["data_sufficiency"]["status"], "partial")
         self.assertEqual(result["data_sufficiency"]["score_confidence"], "not_calibrated")
 
-    def test_material_nutrition_conflict_prevents_overall_score(self):
+    def test_material_nutrition_conflict_keeps_selected_source_and_marks_score_partial(self):
         result = rate({
             "nutrition_per_100g": COMPLETE_NUTRITION,
             "ingredients_text": "flour",
@@ -124,7 +127,8 @@ class ScoringServiceTests(unittest.TestCase):
             "nova_source": "open_food_facts",
             "nutrition_conflicts": [{"nutrient": "sugar", "ocr_value": 18, "open_food_facts_value": 22}],
         })
-        self.assertIsNone(result["scores"]["overall"])
+        self.assertIsInstance(result["scores"]["overall"], int)
+        self.assertEqual(result["data_sufficiency"]["scoring_eligibility"], "eligible_partial")
         self.assertIn("unresolved conflicts in scored nutrients", result["data_sufficiency"]["missing"])
 
     def test_unknown_additive_code_does_not_receive_perfect_score(self):
@@ -137,7 +141,7 @@ class ScoringServiceTests(unittest.TestCase):
             "nova_group": 4,
             "nova_source": "open_food_facts",
         })
-        self.assertIsNone(result["scores"]["overall"])
+        self.assertIsInstance(result["scores"]["overall"], int)
         self.assertIsNone(result["scores"]["additive_safety"]["score"])
         self.assertEqual(result["scores"]["additive_safety"]["unverified_additives"], ["E9999"])
 

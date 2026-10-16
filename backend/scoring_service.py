@@ -148,7 +148,6 @@ def rate(product_data: dict) -> dict:
     if material_conflicts:
         missing_data.append("unresolved conflicts in scored nutrients")
     missing_data = list(dict.fromkeys(missing_data))
-    score_status = "provisional" if not missing_data else "not_calculated"
     displayed_nutrients = {
         "energy_kcal", "total_fat", "saturated_fat", "trans_fat",
         "total_carbohydrate", "fiber", "sugar", "added_sugar", "protein",
@@ -161,21 +160,43 @@ def rate(product_data: dict) -> dict:
         nutrition_missing.append("serving_size")
     nutrition_missing = sorted(set(nutrition_missing))
 
-    if score_status != "provisional":
+    component_scores = {
+        "nutrient_quality": nutrient_result["score"],
+        "nova_processing": nova_result["score"],
+        "nutrient_limits": limits_result["score"],
+        "additive_safety": additive_result["score"],
+    }
+    available_components = {
+        name: score for name, score in component_scores.items()
+        if isinstance(score, (int, float)) and not isinstance(score, bool)
+    }
+    available_weight = sum(SCORING_WEIGHTS[name] for name in available_components)
+    unavailable_components = [
+        name for name in component_scores if name not in available_components
+    ]
+    effective_weights = {
+        name: (
+            round(SCORING_WEIGHTS[name] / available_weight, 6)
+            if name in available_components and available_weight
+            else None
+        )
+        for name in SCORING_WEIGHTS
+    }
+
+    if not available_components:
         overall_score = None
         grade = "N/A"
-        grade_label = "Incomplete Data"
+        grade_label = "No Scorable Data"
+        score_status = "not_calculated"
         explanation = (
-            "A NutriTrust score was not calculated because these inputs are unavailable: "
+            "A NutriTrust score was not calculated because no component had valid inputs: "
             + ", ".join(missing_data)
             + "."
         )
     else:
+        score_status = "provisional" if not unavailable_components and not missing_data else "partial"
         overall_score = round(
-            (SCORING_WEIGHTS["nutrient_quality"] * nutrient_result["score"])
-            + (SCORING_WEIGHTS["nova_processing"] * nova_result["score"])
-            + (SCORING_WEIGHTS["nutrient_limits"] * limits_result["score"])
-            + (SCORING_WEIGHTS["additive_safety"] * additive_result["score"])
+            sum(effective_weights[name] * score for name, score in available_components.items())
         )
         overall_score = max(0, min(100, overall_score))
         grade, grade_label = _get_grade(overall_score)
@@ -183,20 +204,21 @@ def rate(product_data: dict) -> dict:
             overall_score, grade, nutrition, nutrient_result, nova_result,
             limits_result, additive_result
         )
-
-    component_scores = {
-        "nutrient_quality": nutrient_result["score"],
-        "nova_processing": nova_result["score"],
-        "nutrient_limits": limits_result["score"],
-        "additive_safety": additive_result["score"],
-    }
+        if unavailable_components:
+            explanation += (
+                " This provisional score uses the available components with their "
+                "configured weights normalized to 100%; unavailable components: "
+                + ", ".join(unavailable_components)
+                + "."
+            )
     contributions = {
-        name: None if value is None else round(SCORING_WEIGHTS[name] * value, 2)
+        name: None if value is None else round(effective_weights[name] * value, 2)
         for name, value in component_scores.items()
     }
     return {
         "formula_version": SCORING_FORMULA_VERSION,
         "weights": dict(SCORING_WEIGHTS),
+        "effective_weights": effective_weights,
         "component_scores": component_scores,
         "contributions": contributions,
         "score_status": score_status,
@@ -210,7 +232,12 @@ def rate(product_data: dict) -> dict:
             "missing": missing_data,
             "nutrition": {"status": "partial" if nutrition_missing else "available", "missing_fields": nutrition_missing},
             "ingredients": "provided_unverified" if ingredients_text else "missing",
-            "scoring_eligibility": "eligible_provisional" if score_status == "provisional" else "ineligible",
+            "scoring_eligibility": (
+                "eligible_provisional" if score_status == "provisional"
+                else "eligible_partial" if score_status == "partial"
+                else "ineligible"
+            ),
+            "unavailable_components": unavailable_components,
             "score_confidence": "not_calibrated",
         },
         "scores": {

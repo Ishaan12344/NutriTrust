@@ -1,6 +1,6 @@
 # NutriTrust scoring policy
 
-Policy version: `hybrid-v1`. This is a product comparison aid, not a medical or
+Policy version: `hybrid-v1-partial-v2`. This is a product comparison aid, not a medical or
 regulatory determination. Its component values are NutriTrust-specific and do
 not replace the official classifications named below.
 
@@ -11,9 +11,16 @@ When all four component scores are available, the backend calculates:
 `round(0.40 × nutrient_quality + 0.25 × nova_processing + 0.20 × nutrient_limits + 0.15 × additive_analysis)`
 
 All components range from 0 to 100, with higher values intended to be better.
-Unavailable components prevent the composite from being calculated; their
-weights are not redistributed. The API returns the configured weights, each
-component value, and its weighted contribution.
+When one or more components are unavailable, NutriTrust calculates a
+**provisional partial score** only from components with valid inputs. Their
+configured weights are normalized to sum to 1.0:
+
+`partial_score = round(sum((weight_i / sum(available_weights)) × score_i))`
+
+Missing inputs are never converted to zero. The API returns configured
+`weights`, `effective_weights`, unavailable component names, field-level
+missing-input notes, and weighted contributions. If no component has valid
+inputs, no score is returned.
 
 The component mappings preserve the supplied legacy engine: nutrient quality
 uses its threshold point totals transformed to 0–100; NOVA groups map to

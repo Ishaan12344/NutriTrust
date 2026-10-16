@@ -31,7 +31,10 @@ GRADE_THRESHOLDS = [
     (0, "F", "Avoid - extremely unhealthy"),
 ]
 
-SCORING_FORMULA_VERSION = "hybrid-v1"
+# ``partial-v2`` keeps the component formulas intact but normalizes the weights
+# of valid components when other components are unavailable.  Missing values are
+# never represented as zero.
+SCORING_FORMULA_VERSION = "hybrid-v1-partial-v2"
 
 # UK front-of-pack thresholds for solid foods per 100 g. Energy is expressed in
 # kJ, and salt—not sodium—is the official fourth traffic-light nutrient.

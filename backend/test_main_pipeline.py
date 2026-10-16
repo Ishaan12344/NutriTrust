@@ -88,6 +88,11 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"], off)
+        analysis = response.json()["product_analysis"]
+        self.assertEqual(analysis["product"]["name"], "Database Product")
+        self.assertEqual(analysis["identification"]["requested_barcode"], barcode)
+        self.assertEqual(analysis["data_quality"]["status"], "partial")
+        self.assertIn("scoring", analysis)
         fetch.assert_awaited_once_with(barcode)
 
     def test_missing_off_product_preserves_ocr(self):
