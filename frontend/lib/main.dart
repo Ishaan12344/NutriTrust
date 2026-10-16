@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 
 import 'screens/login_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  OpenFoodAPIConfiguration.userAgent = UserAgent(name: 'NutriTrust');
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
 
+  OpenFoodAPIConfiguration.userAgent = UserAgent(name: 'NutriTrust');
   OpenFoodAPIConfiguration.globalLanguages = [OpenFoodFactsLanguage.ENGLISH];
 
   runApp(const NutriTrustApp());
@@ -21,12 +27,7 @@ class NutriTrustApp extends StatelessWidget {
     return MaterialApp(
       title: 'NutriTrust',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF287D5A)),
-        scaffoldBackgroundColor: const Color(0xFFF8FAF8),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF8FAF8)),
-      ),
+      theme: AppTheme.lightTheme,
       home: const LoginScreen(),
     );
   }
