@@ -71,4 +71,43 @@ void main() {
       service.close();
     },
   );
+
+  test('register sends JSON payload and returns result', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/v1/auth/register');
+      final body = jsonDecode(request.body) as Map;
+      expect(body['username'], 'johndoe');
+      expect(body['password'], 'secret');
+      return http.Response(jsonEncode({'success': true, 'message': 'User registered successfully'}), 200);
+    });
+    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+    final res = await service.register(username: 'johndoe', password: 'secret');
+    expect(res['success'], isTrue);
+    service.close();
+  });
+
+  test('login sends JSON payload and returns user profile', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/v1/auth/login');
+      final body = jsonDecode(request.body) as Map;
+      expect(body['username'], 'johndoe');
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'user': {
+            'username': 'johndoe',
+            'profile': {'name': 'John', 'age': 25, 'weight': 70.0, 'gender': 'Male'},
+          },
+        }),
+        200,
+      );
+    });
+    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+    final res = await service.login(username: 'johndoe', password: 'secret');
+    expect(res['success'], isTrue);
+    expect((res['user'] as Map)['username'], 'johndoe');
+    service.close();
+  });
 }

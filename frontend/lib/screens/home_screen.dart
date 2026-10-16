@@ -1,6 +1,5 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,9 +11,10 @@ import 'barcode_scanner_screen.dart';
 import 'personal_health_input_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.profile});
+  const HomeScreen({super.key, this.profile, this.username});
 
   final HealthProfile? profile;
+  final String? username;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -22,7 +22,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
   final NutriTrustApiService _api = NutriTrustApiService();
-  File? _labelImage;
+  XFile? _selectedImage;
+  Uint8List? _imageBytes;
   Map<String, dynamic>? _analysis;
   bool _isLoading = false;
   String? _error;
@@ -35,10 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final image = await _picker.pickImage(source: source, imageQuality: 90);
       developer.log('image picker returned: ${image?.name ?? 'cancelled'}', name: 'nutritrust.ui');
       if (image == null || !mounted) return;
-      final file = File(image.path);
-      final size = await file.length();
-      developer.log('image selected: name=${image.name} size=$size type=${image.mimeType ?? 'unknown'}', name: 'nutritrust.ui');
-      if (size > 10 * 1024 * 1024) {
+
+      final bytes = await image.readAsBytes();
+      developer.log('image selected: name=${image.name} size=${bytes.length} type=${image.mimeType ?? 'unknown'}', name: 'nutritrust.ui');
+      if (bytes.length > 10 * 1024 * 1024) {
         setState(() => _error = 'Choose an image that is 10 MB or smaller.');
         return;
       }
@@ -47,22 +48,32 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _error = 'Upload a JPG, JPEG, or PNG image.');
         return;
       }
-      setState(() { _labelImage = file; _analysis = null; _error = null; });
+      setState(() {
+        _selectedImage = image;
+        _imageBytes = bytes;
+        _analysis = null;
+        _error = null;
+      });
       await _analyzeImage();
-    } catch (_) { if (mounted) setState(() => _error = 'Unable to select that image.'); }
+    } catch (e, stackTrace) {
+      developer.log('image pick error', name: 'nutritrust.ui', error: e, stackTrace: stackTrace);
+      if (mounted) setState(() => _error = 'Unable to select that image.');
+    }
   }
 
   Future<void> _analyzeImage() async {
-    final file = _labelImage;
-    if (file == null || _isLoading) return;
+    final image = _selectedImage;
+    final bytes = _imageBytes;
+    if (image == null || bytes == null || _isLoading) return;
     developer.log('label callback triggered; api=${_api.baseUrl}', name: 'nutritrust.ui');
     setState(() { _isLoading = true; _error = null; });
     try {
-      final bytes = await file.readAsBytes();
-      final name = file.path.split(Platform.pathSeparator).last;
+      final name = image.name;
       final response = await _api.analyzeLabel(
-        imageBytes: Uint8List.fromList(bytes), filename: name,
+        imageBytes: bytes,
+        filename: name,
         contentType: name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+        username: widget.username,
       );
       if (mounted) setState(() => _analysis = response);
     } on NutriTrustApiException catch (error) {
@@ -77,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _scanBarcode() async {
     developer.log('barcode button triggered; api=${_api.baseUrl}', name: 'nutritrust.ui');
-    if (mounted) setState(() { _labelImage = null; _error = null; });
+    if (mounted) setState(() { _selectedImage = null; _imageBytes = null; _error = null; });
     String? barcode;
     try {
       barcode = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
@@ -88,9 +99,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     developer.log('scanner returned barcode=${barcode ?? 'none'}', name: 'nutritrust.ui');
     if (barcode == null || !mounted || _isLoading) return;
-    setState(() { _isLoading = true; _analysis = null; _labelImage = null; _error = null; });
+    setState(() { _isLoading = true; _analysis = null; _selectedImage = null; _imageBytes = null; _error = null; });
     try {
-      final response = await _api.analyzeBarcode(barcode);
+      final response = await _api.analyzeBarcode(barcode, username: widget.username);
       if (mounted) setState(() => _analysis = response);
     } on NutriTrustApiException catch (error) {
       developer.log('barcode UI error', name: 'nutritrust.ui', error: error);
@@ -112,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 12),
       OutlinedButton.icon(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => PersonalHealthInputScreen(initialProfile: widget.profile)),
+          MaterialPageRoute(builder: (_) => PersonalHealthInputScreen(initialProfile: widget.profile, username: widget.username)),
         ),
         icon: const Icon(Icons.tune),
         label: Text(widget.profile?.hasInformation == true ? 'Edit nutrition preferences' : 'Personalize your nutrition'),
@@ -123,16 +134,16 @@ class _HomeScreenState extends State<HomeScreen> {
       OutlinedButton.icon(onPressed: _isLoading ? null : () => _pickImage(ImageSource.camera), icon: const Icon(Icons.camera_alt_outlined), label: const Text('Take a label photo')),
       const SizedBox(height: 12),
       OutlinedButton.icon(onPressed: _isLoading ? null : () => _pickImage(ImageSource.gallery), icon: const Icon(Icons.photo_library_outlined), label: const Text('Choose from gallery')),
-      if (_labelImage != null) ...[
+      if (_imageBytes != null) ...[
         const SizedBox(height: 16),
-        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_labelImage!, height: 220, fit: BoxFit.contain)),
+        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(_imageBytes!, height: 220, fit: BoxFit.contain)),
         const SizedBox(height: 10),
         FilledButton.icon(onPressed: _isLoading ? null : _analyzeImage, icon: const Icon(Icons.document_scanner_outlined), label: const Text('Analyze label')),
       ],
       if (_isLoading) const Padding(padding: EdgeInsets.all(24), child: Column(children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Analyzing…')])),
       if (_error != null) ...[
         const SizedBox(height: 20), Text(_error!, style: TextStyle(color: Colors.red)),
-        TextButton.icon(onPressed: _labelImage == null ? _scanBarcode : _analyzeImage, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        TextButton.icon(onPressed: _imageBytes == null ? _scanBarcode : _analyzeImage, icon: const Icon(Icons.refresh), label: const Text('Retry')),
       ],
       if (_analysis != null) ...[const SizedBox(height: 24), NutritionReport(response: _analysis!, profile: widget.profile)],
     ])),

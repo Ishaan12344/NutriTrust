@@ -51,6 +51,10 @@ The Flutter client uses these endpoints and their existing fields are retained:
 
 - `GET /` — service metadata.
 - `GET /health` — `{"status": "ok"}`.
+- `POST /api/v1/auth/register` — registers user credentials and personal health profile (name, age, weight, gender, allergies, conditions, preferences) into MongoDB.
+- `POST /api/v1/auth/login` — authenticates user credentials against MongoDB and returns user profile.
+- `GET /api/v1/user/profile` — retrieves saved health profile from MongoDB.
+- `PUT /api/v1/user/profile` — updates personal health profile in MongoDB.
 - `POST /api/v1/ocr` — multipart field `file` (`image/jpeg` or `image/png`),
   with optional `barcode`. Returns `success`, OCR output, parsed label,
   normalized nutrition, merged product, `product_analysis`, health analysis,

@@ -11,6 +11,8 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
+from pydantic import BaseModel
+
 from analysis_pipeline import (
     build_ocr_response,
     build_barcode_analysis,
@@ -18,6 +20,14 @@ from analysis_pipeline import (
     scoring_input_from_merged as _scoring_input_from_merged,
 )
 from app_config import get_settings
+from database import (
+    authenticate_user,
+    get_profile,
+    get_user_scans,
+    register_user,
+    save_scan_and_product,
+    update_profile,
+)
 from food_data_merger import merge_product_data
 from health_analyzer import analyze_product_health
 from nutrition_normalizer import normalize_nutrition
@@ -32,16 +42,49 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_SIZE = get_settings().max_image_size_bytes
 ALLOWED_TYPES = {"image/jpeg", "image/png"}
 
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    name: str | None = None
+    age: int | None = None
+    weight: float | None = None
+    gender: str | None = None
+    allergies: list[str] = []
+    allergy_other: str | None = None
+    conditions: list[str] = []
+    condition_other: str | None = None
+    preferences: list[str] = []
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ProfileUpdateRequest(BaseModel):
+    username: str
+    name: str | None = None
+    age: int | None = None
+    weight: float | None = None
+    gender: str | None = None
+    allergies: list[str] = []
+    allergy_other: str | None = None
+    conditions: list[str] = []
+    condition_other: str | None = None
+    preferences: list[str] = []
+
+
 app = FastAPI(
     title="NutriTrust API",
     version="0.1.0",
-    description="Food label OCR service powered by Sarvam AI.",
+    description="Food label OCR and Nutrition service with MongoDB integration.",
 )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -68,10 +111,69 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/api/v1/auth/register")
+def register(req: RegisterRequest):
+    """Register a new user in MongoDB with health profile data."""
+    try:
+        user_data = register_user(
+            username=req.username,
+            password=req.password,
+            profile_data=req.model_dump(),
+        )
+        return {"success": True, "message": "User registered successfully", "user": user_data}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/auth/login")
+def login(req: LoginRequest):
+    """Authenticate a user and return their saved health profile."""
+    try:
+        user_data = authenticate_user(username=req.username, password=req.password)
+        return {"success": True, "message": "Login successful", "user": user_data}
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/user/profile")
+def fetch_user_profile(username: str):
+    """Fetch health profile from MongoDB for a given username."""
+    try:
+        profile = get_profile(username=username)
+        return {"success": True, "profile": profile}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.put("/api/v1/user/profile")
+def save_user_profile(req: ProfileUpdateRequest):
+    """Update health profile in MongoDB (name, age, weight, gender, allergies, etc.)."""
+    try:
+        profile = update_profile(username=req.username, profile_data=req.model_dump())
+        return {"success": True, "profile": profile}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+
+@app.get("/api/v1/user/scans")
+def fetch_user_scans(username: str):
+    """Retrieve scan history for a user from MongoDB."""
+    return {"success": True, "scans": get_user_scans(username=username)}
+
+
 @app.post("/api/v1/ocr")
-async def scan_food_label(file: UploadFile = File(...), barcode: str | None = None):
-    """Validate an upload, run OCR, and delegate analysis construction to the pipeline."""
-    logger.info("OCR endpoint started: filename=%s content_type=%s barcode_supplied=%s", file.filename, file.content_type, bool(barcode))
+async def scan_food_label(file: UploadFile = File(...), barcode: str | None = None, username: str | None = None):
+    """Validate an upload, run OCR, delegate analysis, and persist scan/product data."""
+    logger.info("OCR endpoint started: filename=%s content_type=%s barcode_supplied=%s user=%s", file.filename, file.content_type, bool(barcode), username)
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail="Upload a JPG, JPEG or PNG image.")
 
@@ -86,7 +188,7 @@ async def scan_food_label(file: UploadFile = File(...), barcode: str | None = No
             extract_text_from_image, image_bytes, file.filename or "food-label.jpg", file.content_type
         )
         logger.info("OCR completed: job_id=%s status=%s text_length=%s", result.get("job_id"), result.get("status"), len(result.get("text") or ""))
-        return await build_ocr_response(
+        resp = await build_ocr_response(
             ocr_result=result,
             filename=file.filename,
             barcode=barcode,
@@ -98,6 +200,16 @@ async def scan_food_label(file: UploadFile = File(...), barcode: str | None = No
             score=rate,
             logger=logger,
         )
+        try:
+            save_scan_and_product(
+                scan_type="ocr",
+                analysis_response=resp,
+                username=username,
+                barcode=barcode,
+            )
+        except Exception as exc:
+            logger.warning("Could not persist OCR scan: %s", exc)
+        return resp
     except HTTPException:
         raise
     except ValueError as exc:
@@ -115,8 +227,8 @@ async def scan_food_label(file: UploadFile = File(...), barcode: str | None = No
 
 
 @app.get("/api/v1/open-food-facts/{barcode}")
-async def get_open_food_facts_product(barcode: str):
-    logger.info("barcode endpoint started: barcode_length=%s", len(barcode))
+async def get_open_food_facts_product(barcode: str, username: str | None = None):
+    logger.info("barcode endpoint started: barcode_length=%s user=%s", len(barcode), username)
     try:
         data = await fetch_open_food_facts_product(barcode)
         logger.info("barcode endpoint lookup complete: found=%s", data.get("found"))
@@ -127,12 +239,22 @@ async def get_open_food_facts_product(barcode: str):
             analyze_health=analyze_product_health,
             score=rate,
         )
-        return {
+        resp = {
             "success": True,
             "data": data,
             "scoring": product_analysis["scoring"],
             "product_analysis": product_analysis,
         }
+        try:
+            save_scan_and_product(
+                scan_type="barcode",
+                analysis_response=resp,
+                username=username,
+                barcode=barcode,
+            )
+        except Exception as exc:
+            logger.warning("Could not persist barcode scan: %s", exc)
+        return resp
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except httpx.TimeoutException as exc:

@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import '../models/health_profile.dart';
+
 class NutriTrustApiException implements Exception {
   const NutriTrustApiException(this.message);
 
@@ -55,11 +57,17 @@ class NutriTrustApiService {
     required String filename,
     required String contentType,
     String? barcode,
+    String? username,
   }) async {
+    final queryParams = <String, String>{};
+    if (barcode != null && barcode.trim().isNotEmpty) {
+      queryParams['barcode'] = barcode.trim();
+    }
+    if (username != null && username.trim().isNotEmpty) {
+      queryParams['username'] = username.trim();
+    }
     final uri = Uri.parse('$_baseUrl/api/v1/ocr').replace(
-      queryParameters: barcode == null || barcode.trim().isEmpty
-          ? null
-          : {'barcode': barcode.trim()},
+      queryParameters: queryParams.isEmpty ? null : queryParams,
     );
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
@@ -103,15 +111,21 @@ class NutriTrustApiService {
     }
   }
 
-  Future<Map<String, dynamic>> analyzeBarcode(String barcode) async {
+  Future<Map<String, dynamic>> analyzeBarcode(String barcode, {String? username}) async {
     final normalizedBarcode = barcode.trim();
     if (!RegExp(r'^\d{6,14}$').hasMatch(normalizedBarcode)) {
       throw const NutriTrustApiException(
         'Enter or scan a barcode containing 6 to 14 digits.',
       );
     }
+    final queryParams = <String, String>{};
+    if (username != null && username.trim().isNotEmpty) {
+      queryParams['username'] = username.trim();
+    }
     final uri = Uri.parse(
       '$_baseUrl/api/v1/open-food-facts/${Uri.encodeComponent(normalizedBarcode)}',
+    ).replace(
+      queryParameters: queryParams.isEmpty ? null : queryParams,
     );
 
     try {
@@ -258,6 +272,100 @@ class NutriTrustApiService {
         'missing_data_warnings': <dynamic>[],
       },
     };
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String username,
+    required String password,
+    HealthProfile? profile,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/auth/register');
+    final payload = {
+      'username': username.trim(),
+      'password': password,
+      ...?profile?.toJson(),
+    };
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException('The registration request timed out. Please retry.');
+    } on http.ClientException {
+      throw const NutriTrustApiException('Could not connect to the server. Check your connection.');
+    }
+  }
+
+  Future<Map<String, dynamic>> login({
+    required String username,
+    required String password,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/auth/login');
+    final payload = {
+      'username': username.trim(),
+      'password': password,
+    };
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException('The login request timed out. Please retry.');
+    } on http.ClientException {
+      throw const NutriTrustApiException('Could not connect to the server. Check your connection.');
+    }
+  }
+
+  Future<HealthProfile> getProfile(String username) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/user/profile').replace(
+      queryParameters: {'username': username.trim()},
+    );
+    try {
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 15));
+      final body = _decodeResponse(response);
+      final rawProfile = body['profile'] is Map ? Map<String, dynamic>.from(body['profile'] as Map) : <String, dynamic>{};
+      return HealthProfile.fromJson(rawProfile);
+    } on TimeoutException {
+      throw const NutriTrustApiException('Request timed out fetching profile.');
+    } on http.ClientException {
+      throw const NutriTrustApiException('Could not connect to the server.');
+    }
+  }
+
+  Future<HealthProfile> updateProfile(String username, HealthProfile profile) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/user/profile');
+    final payload = {
+      'username': username.trim(),
+      ...profile.toJson(),
+    };
+    try {
+      final response = await _client
+          .put(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      final body = _decodeResponse(response);
+      final rawProfile = body['profile'] is Map ? Map<String, dynamic>.from(body['profile'] as Map) : <String, dynamic>{};
+      return HealthProfile.fromJson(rawProfile);
+    } on TimeoutException {
+      throw const NutriTrustApiException('Request timed out updating profile.');
+    } on http.ClientException {
+      throw const NutriTrustApiException('Could not connect to the server.');
+    }
   }
 
   void close() => _client.close();
