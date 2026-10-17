@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/health_profile.dart';
 import '../services/nutritrust_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_summary.dart';
 import '../widgets/nutrient_bar.dart';
 import '../widgets/personalized_insights.dart';
 import '../widgets/score_ring.dart';
@@ -351,7 +352,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (_analysis != null) ...[
                   const SizedBox(height: 24),
                   NutritionReport(
-                      response: _analysis!, profile: widget.profile),
+                      response: _analysis!,
+                      api: _api,
+                      profile: widget.profile,
+                      username: widget.username),
                 ],
                 const SizedBox(height: 40),
               ]),
@@ -430,10 +434,18 @@ class _HomeScreenState extends State<HomeScreen> {
 // ---------------------------------------------------------------------------
 
 class NutritionReport extends StatelessWidget {
-  const NutritionReport({super.key, required this.response, this.profile});
+  const NutritionReport({
+    super.key,
+    required this.response,
+    required this.api,
+    this.profile,
+    this.username,
+  });
 
   final Map<String, dynamic> response;
+  final NutriTrustApiService api;
   final HealthProfile? profile;
+  final String? username;
 
   Map<String, dynamic> _map(Object? v) =>
       v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
@@ -479,6 +491,8 @@ class NutritionReport extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildProductHeader(context, product, requestedBarcode, normServing, analysis),
+        const SizedBox(height: 16),
+        AiSummaryCard(api: api, response: response, username: username),
         const SizedBox(height: 16),
         if (profile?.hasInformation == true) ...[
           PersonalizedInsights(profile: profile!, analysis: analysis),
@@ -785,7 +799,6 @@ class NutritionReport extends StatelessWidget {
     final visible = children.whereType<NutrientBar>().where((c) {
       return c.servingValue.isNotEmpty || c.per100Value.isNotEmpty;
     }).toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -817,7 +830,26 @@ class NutritionReport extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ...visible,
+          if (visible.isNotEmpty)
+            ...visible
+          else
+            // Keep the section visible when nothing was found for it, so a
+            // barcode with incomplete data still shows every part of the
+            // report instead of silently dropping it.
+            Row(
+              children: [
+                Icon(Icons.help_outline_rounded,
+                    size: 16, color: Colors.grey.shade400),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Not available in the data found for this product.',
+                    style:
+                        TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

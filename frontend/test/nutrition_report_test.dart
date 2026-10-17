@@ -1,6 +1,31 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/services/nutritrust_api_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+
+/// Returns an API service whose summary call succeeds without a network, so the
+/// report's AI summary card can render deterministically in widget tests.
+NutriTrustApiService _stubSummaryApi() {
+  final client = MockClient((request) async {
+    if (request.url.path == '/api/v1/summary') {
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'status': 'ok',
+          'summary': 'Model summary for the test.',
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    return http.Response('{}', 404);
+  });
+  return NutriTrustApiService(client: client);
+}
 
 void main() {
   testWidgets('barcode regression renders verified fields and omits absent nutrients', (tester) async {
@@ -43,7 +68,8 @@ void main() {
       },
     };
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: NutritionReport(response: response)))));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: NutritionReport(response: response, api: _stubSummaryApi())))));
+    await tester.pumpAndSettle();
     expect(find.text('Chitale Foods Instant Gulab Jamun Mix'), findsOneWidget);
     expect(find.textContaining('Per 100 g: 431 kcal'), findsOneWidget);
     expect(find.textContaining('Per 100 g: 20.5 g'), findsOneWidget);
@@ -185,11 +211,12 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
-              child: NutritionReport(response: response),
+              child: NutritionReport(response: response, api: _stubSummaryApi()),
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Sample food'), findsOneWidget);
       expect(find.textContaining('Per serving: 123 kcal'), findsOneWidget);
@@ -205,6 +232,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Not calculated by the backend'), findsNothing);
+      expect(find.text('AI Summary'), findsOneWidget);
+      expect(find.text('Model summary for the test.'), findsOneWidget);
     },
   );
 }

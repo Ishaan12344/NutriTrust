@@ -274,6 +274,59 @@ class NutriTrustApiService {
     };
   }
 
+  /// Requests a natural-language summary of a scan from the backend model.
+  ///
+  /// [response] is the payload returned by [analyzeLabel] or [analyzeBarcode].
+  /// The backend looks the health profile up from [username] and returns
+  /// `{"success", "status", "summary", ...}`; it never fails because of the
+  /// model, so callers should read `summary` and treat an empty value as
+  /// "unavailable".
+  Future<Map<String, dynamic>> generateSummary({
+    required Map<String, dynamic> response,
+    String? username,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/summary');
+    final payload = <String, dynamic>{
+      if (username != null && username.trim().isNotEmpty)
+        'username': username.trim(),
+      'product_analysis': _summaryAnalysis(response),
+    };
+    try {
+      developer.log('summary request start: POST $uri', name: 'nutritrust.api');
+      final result = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 180));
+      final body = _decodeResponse(result);
+      developer.log('summary response: status=${body['status']}', name: 'nutritrust.api');
+      return body;
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'The summary took too long to generate. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend for the summary.',
+      );
+    }
+  }
+
+  /// Builds the analysis the summary endpoint needs, dropping the bulky raw
+  /// Open Food Facts payload so the request stays small.
+  Map<String, dynamic> _summaryAnalysis(Map<String, dynamic> response) {
+    final analysis = response['product_analysis'] is Map
+        ? Map<String, dynamic>.from(response['product_analysis'] as Map)
+        : <String, dynamic>{};
+    final off = analysis['open_food_facts'];
+    if (off is Map) {
+      analysis['open_food_facts'] = Map<String, dynamic>.from(off)..remove('data');
+    }
+    return analysis;
+  }
+
   Future<Map<String, dynamic>> register({
     required String username,
     required String password,

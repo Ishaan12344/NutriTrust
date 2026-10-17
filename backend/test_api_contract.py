@@ -32,6 +32,7 @@ class ApiContractTests(unittest.TestCase):
         paths = response.json()["paths"]
         self.assertIn("/api/v1/ocr", paths)
         self.assertIn("/api/v1/open-food-facts/{barcode}", paths)
+        self.assertIn("/api/v1/summary", paths)
         self.assertIn("/api/v1/auth/register", paths)
         self.assertIn("/api/v1/auth/login", paths)
         self.assertIn("/api/v1/user/profile", paths)

@@ -38,6 +38,11 @@ __pycache__/
 # Ignore all CSV files
 *.csv
 ml_model
+# Local model weights (multi-GB); keep them out of git.
+backend/models/
 backend/data/users.json
 backend/data/scans.json
 backend/data/products.json
+
+
+backend/models

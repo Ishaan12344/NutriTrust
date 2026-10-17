@@ -28,3 +28,10 @@ urllib3==2.8.0
 uvicorn==0.54.0
 watchfiles==1.3.0
 websockets==17.2
+
+# Optional local summary model (/api/v1/summary), the Qwen2.5-1.5B-Instruct
+# weights under models/. These are large; the rest of the API and its tests run
+# without them, and the endpoint degrades gracefully when they are absent.
+torch>=2.2
+transformers>=4.56
+accelerate>=0.30

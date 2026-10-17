@@ -5,6 +5,8 @@ HTTP concerns stay here; the product-analysis workflow lives in
 """
 
 import logging
+from functools import partial
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
@@ -35,6 +37,10 @@ from nutrition_parser import parse_food_label
 from open_food_facts_service import fetch_open_food_facts_product
 from sarvam_ocr import extract_text_from_image
 from scoring_service import rate
+from summary_service import (
+    generate_text as _generate_summary_text,
+    summarize_analysis as _summarize_analysis,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +79,20 @@ class ProfileUpdateRequest(BaseModel):
     conditions: list[str] = []
     condition_other: str | None = None
     preferences: list[str] = []
+
+
+class SummaryRequest(BaseModel):
+    """Input for the optional local-LLM summary.
+
+    ``product_analysis`` is the payload returned by the scan endpoints.  The
+    top-level ``scoring`` and ``health_analysis`` fields are accepted as
+    fallbacks for callers that send them separately.
+    """
+
+    username: str | None = None
+    product_analysis: dict[str, Any] | None = None
+    scoring: dict[str, Any] | None = None
+    health_analysis: dict[str, Any] | None = None
 
 
 app = FastAPI(
@@ -265,3 +285,55 @@ async def get_open_food_facts_product(barcode: str, username: str | None = None)
         raise HTTPException(status_code=502, detail="Could not connect to Open Food Facts.") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+def _summary_input(req: SummaryRequest) -> dict[str, Any]:
+    """Normalize a summary request into the product-analysis shape."""
+    analysis = dict(req.product_analysis) if isinstance(req.product_analysis, dict) else {}
+    if req.scoring and "scoring" not in analysis:
+        analysis["scoring"] = req.scoring
+    if req.health_analysis and "health_analysis" not in analysis:
+        analysis["health_analysis"] = req.health_analysis
+    return analysis
+
+
+@app.post("/api/v1/summary")
+async def summarize_product(req: SummaryRequest):
+    """Summarize a scan for a user with the bundled local model (best-effort).
+
+    A disabled, unavailable, or timed-out model returns ``success: false`` with
+    a ``status`` reason rather than failing the request, so the scan pipeline
+    and its response contract are never broken by the summarizer.
+    """
+    settings = get_settings()
+    analysis = _summary_input(req)
+    if not analysis:
+        raise HTTPException(
+            status_code=422,
+            detail="Product analysis data is required to build a summary.",
+        )
+
+    if not settings.summary_enabled:
+        return {"success": False, "status": "disabled", "summary": None, "model": None}
+
+    profile: dict[str, Any] = {}
+    if req.username and req.username.strip():
+        try:
+            profile = get_profile(username=req.username)
+        except (ValueError, RuntimeError) as exc:
+            logger.info("summary profile lookup skipped for %s: %s", req.username, exc)
+
+    logger.info("summary endpoint started: user=%s has_profile=%s", req.username, bool(profile))
+    result = await run_in_threadpool(
+        _summarize_analysis,
+        profile,
+        analysis,
+        generate=partial(
+            _generate_summary_text,
+            model_path=settings.summary_model_path,
+            timeout_seconds=settings.summary_timeout_seconds,
+        ),
+        max_new_tokens=settings.summary_max_new_tokens,
+    )
+    logger.info("summary endpoint complete: status=%s", result.get("status"))
+    return {"success": result["status"] == "ok", **result}
