@@ -1,0 +1,25 @@
+{
+  "rows": 306805,
+  "columns": 11,
+  "target_column": "nova-group_100g",
+  "target_distribution": {
+    "1": 34360,
+    "2": 8458,
+    "3": 68075,
+    "4": 195912
+  },
+  "feature_count": 10,
+  "missing_values": {
+    "fiber_100g": 0.3305454604716351,
+    "nutrition-score-fr_100g": 0.15128501817115106,
+    "saturated-fat_100g": 0.10333273577679633,
+    "energy-kcal_100g": 0.09597627157314907,
+    "sugars_100g": 0.06750215935203142,
+    "sodium_100g": 0.05459493815289842,
+    "salt_100g": 0.05459493815289842,
+    "proteins_100g": 0.042075585469597956,
+    "fat_100g": 0.04156060038134972,
+    "carbohydrates_100g": 0.04149867179478822
+  },
+  "duplicated_rows": 57276
+}

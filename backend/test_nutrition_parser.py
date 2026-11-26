@@ -123,5 +123,35 @@ class NutritionParserTests(unittest.TestCase):
         self.assertEqual(table["nutrition"]["dietary_fiber"], {"value": 1.78, "unit": "g"})
 
 
+    def test_additives_and_salt_are_recognized(self):
+        parsed = parse_food_label(
+            "Ingredients: Wheat flour, salt, raising agent [503(ii)], "
+            "preservative (223), INS 621\n"
+            "Nutrition Facts\nSalt 1 g"
+        )
+        self.assertEqual(parsed["additives_tags"], ["E223", "E503", "E621"])
+        self.assertEqual(parsed["nutrition"]["sodium"], {"value": 400.0, "unit": "mg"})
+
+    def test_ingredients_only_falls_back_to_full_text(self):
+        text = "Wheat flour, sugar, cocoa powder, milk solids"
+        self.assertIsNone(parse_food_label(text)["ingredients"])
+        parsed = parse_food_label(text, ingredients_only=True)
+        self.assertEqual(parsed["ingredients"], text)
+
+    def test_additives_in_comma_lists_brackets_and_names(self):
+        parsed = parse_food_label(
+            "INGREDIENTS: Wheat flour, raising agents (503(ii), 500(ii)), "
+            "emulsifier (322 (soy lecithin)), sodium benzoate, antioxidant (319)",
+            ingredients_only=True,
+        )
+        self.assertEqual(
+            parsed["additives_tags"], ["E211", "E319", "E322", "E500", "E503"]
+        )
+
+    def test_full_text_fallback_does_not_read_vitamin_e_as_an_additive(self):
+        parsed = parse_food_label("Nutrition Facts\nVitamin E 100 mcg")
+        self.assertEqual(parsed["additives_tags"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

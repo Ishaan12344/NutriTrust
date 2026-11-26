@@ -17,24 +17,137 @@ LABEL_TEXT = (
 
 
 class ProductAnalysisPipelineTests(unittest.TestCase):
-    def request_analysis(self, *, barcode=None, text=LABEL_TEXT, off_result=None, off_error=None):
+    def request_analysis(self, *, barcode=None, text=LABEL_TEXT, ingredients_text=None, off_result=None, off_error=None):
         async def request():
             transport = httpx.ASGITransport(app=app)
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                 files = {"file": ("label.png", b"image-bytes", "image/png")}
+                if ingredients_text is not None:
+                    files["ingredients_file"] = (
+                        "ingredients.png", b"ingredients-bytes", "image/png",
+                    )
                 params = {"barcode": barcode} if barcode is not None else None
                 return await client.post("/api/v1/ocr", files=files, params=params)
+
+        def fake_ocr(_image_bytes, filename, _content_type):
+            if filename == "ingredients.png":
+                return {
+                    "job_id": "ocr-job-2", "status": "completed", "text": ingredients_text,
+                }
+            return {
+                "job_id": "ocr-job-1", "status": "completed", "text": text,
+            }
 
         async def fetch_off(_barcode):
             if off_error:
                 raise off_error
             return off_result
 
-        with patch("main.extract_text_from_image", return_value={
-            "job_id": "ocr-job-1", "status": "completed", "text": text,
-        }), patch("main.fetch_open_food_facts_product", new=AsyncMock(side_effect=fetch_off)) as fetch:
+        with patch("main.extract_text_from_image", side_effect=fake_ocr), patch("main.fetch_open_food_facts_product", new=AsyncMock(side_effect=fetch_off)) as fetch:
             response = asyncio.run(request())
         return response, fetch
+
+    def test_dual_image_merges_ingredients_and_label_additives(self):
+        response, _ = self.request_analysis(
+            text=(
+                "Product Name: Sample Bar\n"
+                "Nutrition information per 100 g\n"
+                "Total Fat | 5 g\nProtein | 4 g"
+            ),
+            ingredients_text=(
+                "Ingredients: oats, sugar, cocoa, raising agent (500)\n"
+                "Contains: milk\nMay contain traces of soy"
+            ),
+        )
+        analysis = response.json()["product_analysis"]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(analysis["ingredients"]["text"], "oats, sugar, cocoa, raising agent (500)")
+        self.assertEqual(analysis["allergens"]["declaration"], "milk")
+        self.assertEqual(analysis["classification"]["additives_tags"], ["E500"])
+        self.assertEqual(analysis["classification"]["additives_count"], 1)
+        self.assertEqual(analysis["data_sources"]["additives"], "ocr_label")
+        self.assertEqual(analysis["ocr"]["ingredients_status"], "completed")
+        self.assertEqual(
+            analysis["scoring"]["scores"]["additive_safety"]["status"], "known"
+        )
+
+    def test_dual_image_end_to_end_calculations_and_findings_agree(self):
+        response, _ = self.request_analysis(
+            text=(
+                "Product Name: Masala Noodles\n"
+                "Nutrition information per 100 g\n"
+                "Energy | 450 kcal\nTotal Fat | 20 g\nSaturated Fat | 10 g\n"
+                "Total Sugars | 25 g\nProtein | 8 g\nSalt | 1.5 g"
+            ),
+            ingredients_text=(
+                "INGREDIENTS: Wheat flour, sugar, edible vegetable oil, "
+                "raising agents (503(ii), 500(ii)), sodium benzoate, "
+                "antioxidant (319)\nContains: wheat"
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        analysis = body["product_analysis"]
+
+        # Every additive in the OCR ingredient list is identified.
+        self.assertEqual(
+            analysis["classification"]["additives_tags"],
+            ["E211", "E319", "E500", "E503"],
+        )
+
+        # NOVA and Nutri-Score are calculated internally without Open Food Facts.
+        self.assertEqual(analysis["open_food_facts"]["request_status"], "not_requested")
+        self.assertEqual(body["nova"]["status"], "classified")
+        self.assertIn(body["nova"]["group"], (1, 2, 3, 4))
+        self.assertIn(
+            body["nutri_score"]["status"],
+            {"calculated", "calculated_with_assumptions"},
+        )
+        self.assertIn(body["nutri_score"]["grade"], {"A", "B", "C", "D", "E"})
+
+        # Internal health analysis remains consistent with the engine results.
+        findings = {f["id"]: f for f in analysis["health_analysis"]["findings"]}
+        self.assertEqual(findings["classification.nova_group"]["status"], "known")
+        self.assertEqual(findings["classification.nova_group"]["measured"], body["nova"]["group"])
+        self.assertEqual(
+            findings["classification.nutriscore_grade"]["measured"], body["nutri_score"]["grade"]
+        )
+        identifiers = {
+            item["identifier"]
+            for item in findings["ingredients.identified_additives"]["measured"]
+        }
+        self.assertEqual(identifiers, {"E211", "E319", "E500", "E503"})
+
+        warnings = analysis["health_analysis"]["warnings"]
+        self.assertFalse(any("NOVA group was not supplied" in w for w in warnings))
+        self.assertFalse(any("Nutri-Score grade was not supplied" in w for w in warnings))
+        self.assertFalse(any("Additive identification" in w for w in warnings))
+
+    def test_failed_ingredients_ocr_does_not_fail_the_scan(self):
+        async def request():
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                return await client.post(
+                    "/api/v1/ocr",
+                    files={
+                        "file": ("label.png", b"image-bytes", "image/png"),
+                        "ingredients_file": ("ingredients.png", b"bad-bytes", "image/png"),
+                    },
+                )
+
+        def fake_ocr(_image_bytes, filename, _content_type):
+            if filename == "ingredients.png":
+                raise RuntimeError("No readable text was detected. Try a clearer image.")
+            return {"job_id": "ocr-job-1", "status": "completed", "text": LABEL_TEXT}
+
+        with patch("main.extract_text_from_image", side_effect=fake_ocr), patch("main.save_scan_and_product"):
+            response = asyncio.run(request())
+
+        self.assertEqual(response.status_code, 200)
+        analysis = response.json()["product_analysis"]
+        self.assertEqual(analysis["ocr"]["ingredients_status"], "failed")
+        self.assertEqual(analysis["ingredients"]["source"], "ocr_label")
+        self.assertTrue(any("ingredients photo" in w.lower() for w in analysis["warnings"]))
 
     def test_ocr_only_analysis_has_unified_response(self):
         response, fetch = self.request_analysis()
@@ -91,7 +204,7 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
         analysis = response.json()["product_analysis"]
         self.assertEqual(analysis["product"]["name"], "Database Product")
         self.assertEqual(analysis["identification"]["requested_barcode"], barcode)
-        self.assertEqual(analysis["data_quality"]["status"], "partial")
+        self.assertNotIn("data_quality", analysis)
         self.assertIn("scoring", analysis)
         fetch.assert_awaited_once_with(barcode)
 
@@ -179,7 +292,7 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
         self.assertEqual(analysis["ingredients"]["text"], None)
         self.assertEqual(analysis["allergens"]["declaration"], None)
         self.assertEqual(analysis["allergens"]["status"], "unknown")
-        self.assertTrue(any("does not mean" in warning for warning in analysis["missing_data_warnings"]))
+        self.assertNotIn("missing_data_warnings", analysis)
         self.assertIsNone(analysis["ingredients"]["text"])
 
 

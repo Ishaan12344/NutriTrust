@@ -53,6 +53,7 @@ void main() {
         );
         expect(request.body, contains('name="file"'));
         expect(request.body, contains('filename="nutrition.png"'));
+        expect(request.body, isNot(contains('name="ingredients_file"')));
         return http.Response(jsonEncode(responseBody), 200);
       });
       final service = NutriTrustApiService(
@@ -68,6 +69,34 @@ void main() {
       );
 
       expect(response['success'], isTrue);
+      service.close();
+    },
+  );
+
+  test(
+    'label analysis sends the ingredients image as a second multipart file',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/api/v1/ocr');
+        expect(request.body, contains('name="file"'));
+        expect(request.body, contains('name="ingredients_file"'));
+        expect(request.body, contains('filename="ingredients.png"'));
+        return http.Response(jsonEncode(responseBody), 200);
+      });
+      final service = NutriTrustApiService(
+        client: client,
+        baseUrl: 'https://api.example.test',
+      );
+
+      await service.analyzeLabel(
+        imageBytes: utf8.encode('png-image-bytes'),
+        filename: 'nutrition.png',
+        contentType: 'image/png',
+        ingredientsImageBytes: utf8.encode('png-ingredients-bytes'),
+        ingredientsFilename: 'ingredients.png',
+        ingredientsContentType: 'image/png',
+      );
+
       service.close();
     },
   );

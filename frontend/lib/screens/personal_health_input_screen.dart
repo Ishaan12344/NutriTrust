@@ -184,7 +184,7 @@ class _PersonalHealthInputScreenState
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -198,7 +198,7 @@ class _PersonalHealthInputScreenState
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: AppTheme.primaryGreen, size: 22),
@@ -251,11 +251,11 @@ class _PersonalHealthInputScreenState
                     label: Text(c, style: const TextStyle(fontSize: 12)),
                     selected: selected.contains(c),
                     onSelected: (_) => toggle(c),
-                    selectedColor: AppTheme.primaryGreen.withOpacity(0.15),
+                    selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.15),
                     checkmarkColor: AppTheme.primaryGreen,
                     side: BorderSide(
                       color: selected.contains(c)
-                          ? AppTheme.primaryGreen.withOpacity(0.4)
+                          ? AppTheme.primaryGreen.withValues(alpha: 0.4)
                           : Colors.grey.shade300,
                     ),
                   ))
@@ -303,7 +303,7 @@ class _PersonalHealthInputScreenState
                           'Personalize your nutrition insights',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -361,7 +361,7 @@ class _PersonalHealthInputScreenState
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _gender,
+                      initialValue: _gender,
                       decoration: const InputDecoration(
                         labelText: 'Gender',
                         prefixIcon: Icon(Icons.wc_outlined),

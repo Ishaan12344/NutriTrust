@@ -72,6 +72,22 @@ def merge_product_data(
         "status": "unknown", "review_required": True,
     }
 
+    # Codes printed on the package take precedence; OFF fills the gap otherwise.
+    label_additives = label.get("additives_tags") or []
+    off_additives = off.get("additives_tags") or []
+    if label_additives:
+        additives_tags = list(dict.fromkeys(label_additives))
+        additives_count = len(additives_tags)
+        additives_source = "ocr_label"
+    elif _has_value(off_additives) or off.get("additives_count") is not None:
+        additives_tags = off_additives
+        additives_count = off.get("additives_count")
+        additives_source = "open_food_facts"
+    else:
+        additives_tags = []
+        additives_count = None
+        additives_source = None
+
     # Keep per-serving and per-100-g maps separate. OCR wins only when it has values
     # for that same basis; OFF fills gaps. Any disagreements are surfaced for review.
     ocr_per_100g = norm.get("per_100g") if isinstance(norm.get("per_100g"), dict) else {}
@@ -141,7 +157,7 @@ def merge_product_data(
         "nova_group": "open_food_facts" if off.get("nova_group") is not None else None,
         "nutriscore_grade": "open_food_facts" if _has_value(off.get("nutriscore_grade")) else None,
         "environmental_score_grade": "open_food_facts" if _has_value(off.get("environmental_score_grade")) else None,
-        "additives": "open_food_facts" if _has_value(off.get("additives_tags")) or off.get("additives_count") is not None else None,
+        "additives": additives_source,
     }
 
     warnings = list(label.get("warnings") or [])
@@ -204,8 +220,8 @@ def merge_product_data(
                 "note": "The NutriTrust component score is not an official Nutri-Score calculation.",
             },
             "environmental_score_grade": off.get("environmental_score_grade"),
-            "additives_count": off.get("additives_count"),
-            "additives_tags": off.get("additives_tags", []),
+            "additives_count": additives_count,
+            "additives_tags": additives_tags,
         },
         "data_sources": data_sources,
         "open_food_facts": {

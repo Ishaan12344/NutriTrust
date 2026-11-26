@@ -230,12 +230,12 @@ class PersonalizedInsights extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.primaryGreen.withOpacity(0.06),
-            AppTheme.accentTeal.withOpacity(0.06),
+            AppTheme.primaryGreen.withValues(alpha: 0.06),
+            AppTheme.accentTeal.withValues(alpha: 0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.15)),
+        border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,7 +245,7 @@ class PersonalizedInsights extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.12),
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.person_pin_outlined,
@@ -278,7 +278,7 @@ class PersonalizedInsights extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: m.color.withOpacity(0.1),
+                        color: m.color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(m.icon, size: 16, color: m.color),

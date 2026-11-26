@@ -158,6 +158,38 @@ class HealthAnalyzerTests(unittest.TestCase):
         ))
         self.assertEqual(self.finding(untrusted, "classification.nova_group")["status"], "invalid")
 
+    def test_engine_results_fill_calculated_classifications_and_ocr_additives(self):
+        engines = {
+            "nova": {"status": "classified", "group": 4},
+            "nutri_score": {"status": "calculated", "grade": "C"},
+        }
+        result = analyze_product_health(
+            product(
+                classification={"nova_group": None, "nutriscore_grade": None,
+                                "additives_tags": ["E500", "en:E500"]},
+                data_sources={"additives": "ocr_label"},
+            ),
+            engine_results=engines,
+        )
+        nova = self.finding(result, "classification.nova_group")
+        self.assertEqual(nova["status"], "known")
+        self.assertEqual(nova["category"], "calculated_classification")
+        self.assertEqual(nova["measured"], 4)
+        self.assertEqual(nova["source"], "nutritrust_nova_engine")
+
+        grade = self.finding(result, "classification.nutriscore_grade")
+        self.assertEqual(grade["status"], "known")
+        self.assertEqual(grade["measured"], "C")
+        self.assertEqual(grade["source"], "nutritrust_nutri_score_engine")
+
+        additives = self.finding(result, "ingredients.identified_additives")
+        self.assertEqual(additives["status"], "known")
+        self.assertEqual(additives["measured"], [{"identifier": "E500", "source": "ocr_label"}])
+
+        self.assertFalse(any("NOVA group was not supplied" in w for w in result["warnings"]))
+        self.assertFalse(any("Nutri-Score grade was not supplied" in w for w in result["warnings"]))
+        self.assertFalse(any("Additive identification" in w for w in result["warnings"]))
+
     def test_beverages_are_not_assessed_with_food_per_100g_bands(self):
         result = analyze_product_health(product(
             {"sugar": nutrient(12, "g")}, categories="Beverages and soft drinks",

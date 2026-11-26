@@ -12,6 +12,8 @@ FastAPI routes (main.py)
   -> parsing and normalization (nutrition_parser.py, nutrition_normalizer.py)
   -> deterministic source merge (food_data_merger.py)
   -> health findings + composite score (health_analyzer.py, scoring_service.py)
+  -> independent food-intelligence engines
+     (nutri_score_engine.py, nova_engine.py, additive_regulatory_engine.py)
   -> optional local-LLM summary (summary_service.py)
 ```
 
@@ -65,6 +67,7 @@ The Flutter client uses these endpoints and their existing fields are retained:
   latter includes field provenance, data-quality status, independent health
   findings, and the same score object; `data` and `scoring` remain for existing
   Flutter clients.
+- `POST /api/v1/manual-assessment` — JSON body with manually supplied product data (name, category, ingredients, per-100 nutrients and optional additive concentrations). Returns the same three engine results and unified analysis shape as the scan endpoints.
 - `POST /api/v1/summary` — natural-language summary of a scan for one user.
   Body: `{"username": "...", "product_analysis": {...}}`. The user's saved
   health profile is looked up server-side and combined with the product facts,
@@ -92,6 +95,8 @@ tokens do not conflict. The detailed composite-score formula, source limits,
 and limitations are documented in [SCORING_POLICY.md](SCORING_POLICY.md).
 NutriTrust component scores are not official Nutri-Score classifications or
 medical advice.
+
+The independent Nutri-Score, NOVA, and FSSAI additive engines, their versioned rules, and their limitations are documented in [FOOD_INTELLIGENCE_REFERENCES.md](FOOD_INTELLIGENCE_REFERENCES.md).
 
 ## Summary model
 

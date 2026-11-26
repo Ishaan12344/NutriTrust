@@ -1,19 +1,3 @@
-"""Optional local-LLM summary of a NutriTrust analysis for one user.
-
-The summary is produced by the Qwen2.5-1.5B-Instruct model bundled under
-``models/``.  It explains a single scanned product to one person by combining
-the user's saved health profile with the facts already computed by the pipeline
-(merged product data, health findings, and the NutriTrust score).
-
-Everything here is best-effort.  A disabled feature, a missing model, or a
-generation error yields a payload whose ``status`` describes why instead of
-raising, so the scan pipeline and its API contract are unaffected.
-
-The prompt is built only from data the pipeline already produced.  The model is
-instructed never to invent values, to say when data is missing, and never to
-give medical advice or claim a product is safe.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -76,9 +60,8 @@ _model_lock = threading.RLock()
 _bundle: tuple[Any, Any] | None = None
 
 
-# ---------------------------------------------------------------------------
 # Context building
-# ---------------------------------------------------------------------------
+
 
 def _text(value: Any) -> str | None:
     if value is None:
@@ -148,7 +131,9 @@ def _allergen_line(allergens: Any) -> list[str]:
     if not isinstance(allergens, dict):
         return []
     lines: list[str] = []
-    if declaration := _text(allergens.get("declaration") or allergens.get("open_food_facts_declaration")):
+    if declaration := _text(
+        allergens.get("declaration") or allergens.get("open_food_facts_declaration")
+    ):
         lines.append(f"Allergen declaration: {declaration}")
     if declared := _join_items(allergens.get("declared")):
         lines.append("Allergens declared: " + ", ".join(declared))
@@ -165,7 +150,8 @@ def _finding_lines(findings: Any) -> list[str]:
     if not isinstance(findings, list):
         return []
     ordered = [
-        finding for finding in findings
+        finding
+        for finding in findings
         if isinstance(finding, dict)
         and _text(finding.get("severity")) in {"attention", "review"}
     ]
@@ -189,7 +175,9 @@ def _product_text_blob(analysis: Any) -> str:
     if not isinstance(analysis, dict):
         return ""
     parts: list[str | None] = []
-    allergens = analysis.get("allergens") if isinstance(analysis.get("allergens"), dict) else {}
+    allergens = (
+        analysis.get("allergens") if isinstance(analysis.get("allergens"), dict) else {}
+    )
     parts.append(_text(allergens.get("declaration")))
     parts.append(_text(allergens.get("open_food_facts_declaration")))
     parts.extend(_join_items(allergens.get("declared")))
@@ -198,7 +186,11 @@ def _product_text_blob(analysis: Any) -> str:
     if isinstance(traces, dict):
         parts.append(_text(traces.get("text")))
         parts.extend(_join_items(traces.get("allergens")))
-    ingredients = analysis.get("ingredients") if isinstance(analysis.get("ingredients"), dict) else {}
+    ingredients = (
+        analysis.get("ingredients")
+        if isinstance(analysis.get("ingredients"), dict)
+        else {}
+    )
     parts.append(_text(ingredients.get("text")))
     parts.extend(_join_items(ingredients.get("items")))
     return " ".join(part for part in parts if part)
@@ -212,7 +204,8 @@ def _profile_allergies(profile: Any) -> list[str]:
     if other := _text(profile.get("allergy_other")):
         allergies.append(other)
     return [
-        allergy for allergy in allergies
+        allergy
+        for allergy in allergies
         if allergy.casefold() not in {"other", "no known food allergies"}
     ]
 
@@ -240,7 +233,8 @@ def allergy_results(profile: Any, analysis: Any) -> list[tuple[str, str | None, 
     for allergy in allergies:
         match = next(
             (
-                keyword for keyword in _allergy_keywords(allergy)
+                keyword
+                for keyword in _allergy_keywords(allergy)
                 if re.search(rf"\b{re.escape(keyword)}", blob)
             ),
             None,
@@ -285,13 +279,15 @@ def _allergy_sentence(profile: Any, analysis: Any) -> str | None:
     sentences: list[str] = []
     if present:
         sentences.append(
-            "The label or Open Food Facts mentions " + " and ".join(present)
+            "The label or Open Food Facts mentions "
+            + " and ".join(present)
             + ", which matches your allergy profile."
         )
     if unverified:
         sentences.append(
             "Because ingredient and allergen data are incomplete or missing, your "
-            + ", ".join(unverified) + " allergy could not be checked against this product."
+            + ", ".join(unverified)
+            + " allergy could not be checked against this product."
         )
     return " ".join(sentences) or None
 
@@ -299,13 +295,21 @@ def _allergy_sentence(profile: Any, analysis: Any) -> str | None:
 def _has_allergen_data(analysis: Any) -> bool:
     if not isinstance(analysis, dict):
         return False
-    allergens = analysis.get("allergens") if isinstance(analysis.get("allergens"), dict) else {}
-    if _text(allergens.get("declaration")) or _text(allergens.get("open_food_facts_declaration")):
+    allergens = (
+        analysis.get("allergens") if isinstance(analysis.get("allergens"), dict) else {}
+    )
+    if _text(allergens.get("declaration")) or _text(
+        allergens.get("open_food_facts_declaration")
+    ):
         return True
-    if _join_items(allergens.get("declared")) or _join_items(allergens.get("open_food_facts_tags")):
+    if _join_items(allergens.get("declared")) or _join_items(
+        allergens.get("open_food_facts_tags")
+    ):
         return True
     traces = allergens.get("precautionary_traces")
-    if isinstance(traces, dict) and (_text(traces.get("text")) or _join_items(traces.get("allergens"))):
+    if isinstance(traces, dict) and (
+        _text(traces.get("text")) or _join_items(traces.get("allergens"))
+    ):
         return True
     return False
 
@@ -313,7 +317,9 @@ def _has_allergen_data(analysis: Any) -> bool:
 def _per_100g(analysis: Any) -> dict[str, Any]:
     if not isinstance(analysis, dict):
         return {}
-    nutrition = analysis.get("nutrition") if isinstance(analysis.get("nutrition"), dict) else {}
+    nutrition = (
+        analysis.get("nutrition") if isinstance(analysis.get("nutrition"), dict) else {}
+    )
     per_100g = nutrition.get("per_100g")
     return per_100g if isinstance(per_100g, dict) else {}
 
@@ -347,7 +353,9 @@ def fallback_summary(profile: Any, analysis: Any) -> str:
     model's output cannot be trusted.  It only restates facts the pipeline
     already computed.
     """
-    product = analysis.get("product") if isinstance(analysis.get("product"), dict) else {}
+    product = (
+        analysis.get("product") if isinstance(analysis.get("product"), dict) else {}
+    )
     name = _text(product.get("name"))
     brand = _text(product.get("brands") or product.get("brand"))
     label = name or brand or "This product"
@@ -355,7 +363,9 @@ def fallback_summary(profile: Any, analysis: Any) -> str:
         label = f"{name} ({brand})"
 
     sentences: list[str] = []
-    scoring = analysis.get("scoring") if isinstance(analysis.get("scoring"), dict) else {}
+    scoring = (
+        analysis.get("scoring") if isinstance(analysis.get("scoring"), dict) else {}
+    )
     scores = scoring.get("scores") if isinstance(scoring.get("scores"), dict) else {}
     overall = _number(scores.get("overall"))
     if overall is not None:
@@ -370,11 +380,18 @@ def fallback_summary(profile: Any, analysis: Any) -> str:
             "for the analysis was available."
         )
 
-    health = analysis.get("health_analysis") if isinstance(analysis.get("health_analysis"), dict) else {}
-    findings = health.get("findings") if isinstance(health.get("findings"), list) else []
+    health = (
+        analysis.get("health_analysis")
+        if isinstance(analysis.get("health_analysis"), dict)
+        else {}
+    )
+    findings = (
+        health.get("findings") if isinstance(health.get("findings"), list) else []
+    )
     top = next(
         (
-            finding for finding in findings
+            finding
+            for finding in findings
             if isinstance(finding, dict) and finding.get("severity") == "attention"
         ),
         None,
@@ -385,7 +402,9 @@ def fallback_summary(profile: Any, analysis: Any) -> str:
     if allergy_sentence := _allergy_sentence(profile, analysis):
         sentences.append(allergy_sentence)
 
-    missing = [item.rstrip(". ") for item in _join_items(analysis.get("missing_data_warnings"))]
+    missing = [
+        item.rstrip(". ") for item in _join_items(analysis.get("missing_data_warnings"))
+    ]
     if missing:
         sentences.append("Unavailable: " + "; ".join(missing) + ".")
         sentences.append(
@@ -398,7 +417,9 @@ def fallback_summary(profile: Any, analysis: Any) -> str:
 # Claim patterns used to reject a model summary that asserts something the
 # pipeline's facts do not support.  They are intentionally narrow so ordinary
 # prose is not misread as a health claim.
-_PRESENCE_CLAIM = r"(?:contains?|containing|presence of|includes?|made with)\b[^.]{0,30}\b{kw}"
+_PRESENCE_CLAIM = (
+    r"(?:contains?|containing|presence of|includes?|made with)\b[^.]{0,30}\b{kw}"
+)
 _ABSENCE_CLAIM = (
     r"\b(?:free (?:from|of)|without|does not contain|doesn't contain|not contain|no)"
     r"\b[^.]{0,20}\b{kw}"
@@ -419,12 +440,16 @@ _NUTRIENT_WORDS: dict[str, str] = {
     "calories": "energy_kcal",
     "energy": "energy_kcal",
 }
-_BAND_WORDS = r"(?:high|higher|highest|low|lower|lowest|medium|moderate|excessive|elevated)"
+_BAND_WORDS = (
+    r"(?:high|higher|highest|low|lower|lowest|medium|moderate|excessive|elevated)"
+)
 
 
 def _claims_presence(text: str, allergy: str) -> bool:
     return any(
-        re.search(_PRESENCE_CLAIM.replace("{kw}", re.escape(keyword)), text, re.IGNORECASE)
+        re.search(
+            _PRESENCE_CLAIM.replace("{kw}", re.escape(keyword)), text, re.IGNORECASE
+        )
         for keyword in _allergy_keywords(allergy)
     )
 
@@ -442,7 +467,8 @@ def _claims_absence(text: str, allergy: str) -> bool:
 def _unsupported_band_claim(text: str, analysis: Any) -> str | None:
     """Return the nutrient word for a band claim with no value behind it."""
     available = {
-        key for key, item in _per_100g(analysis).items()
+        key
+        for key, item in _per_100g(analysis).items()
         if isinstance(item, dict) and _number(item.get("value")) is not None
     }
     for word, key in _NUTRIENT_WORDS.items():
@@ -481,22 +507,38 @@ def product_context(analysis: Any) -> list[str]:
     """Describe the analysed product as prompt lines."""
     if not isinstance(analysis, dict):
         return []
-    product = analysis.get("product") if isinstance(analysis.get("product"), dict) else {}
+    product = (
+        analysis.get("product") if isinstance(analysis.get("product"), dict) else {}
+    )
     lines: list[str] = []
 
-    name = _text(product.get("name")) or _text((analysis.get("identification") or {}).get("name") if isinstance(analysis.get("identification"), dict) else None) or "Unknown product"
+    name = (
+        _text(product.get("name"))
+        or _text(
+            (analysis.get("identification") or {}).get("name")
+            if isinstance(analysis.get("identification"), dict)
+            else None
+        )
+        or "Unknown product"
+    )
     brand = _text(product.get("brands") or product.get("brand"))
     lines.append(f"Product: {name}" + (f" (brand: {brand})" if brand else ""))
     if categories := _text(product.get("categories")):
         lines.append(f"Categories: {categories}")
 
-    nutrition = analysis.get("nutrition") if isinstance(analysis.get("nutrition"), dict) else {}
+    nutrition = (
+        analysis.get("nutrition") if isinstance(analysis.get("nutrition"), dict) else {}
+    )
     if per_100g := _nutrition_line(nutrition.get("per_100g")):
         lines.append(f"Nutrition per 100 g: {per_100g}")
     else:
         lines.append("Nutrition per 100 g: not available.")
 
-    ingredients = analysis.get("ingredients") if isinstance(analysis.get("ingredients"), dict) else {}
+    ingredients = (
+        analysis.get("ingredients")
+        if isinstance(analysis.get("ingredients"), dict)
+        else {}
+    )
     if ingredients_text := _text(ingredients.get("text")):
         lines.append("Ingredients: " + ingredients_text[:MAX_INGREDIENT_CHARS])
     else:
@@ -504,7 +546,11 @@ def product_context(analysis: Any) -> list[str]:
 
     lines.extend(_allergen_line(analysis.get("allergens")))
 
-    classification = analysis.get("classification") if isinstance(analysis.get("classification"), dict) else {}
+    classification = (
+        analysis.get("classification")
+        if isinstance(analysis.get("classification"), dict)
+        else {}
+    )
     if nova := _number(classification.get("nova_group")):
         lines.append(f"NOVA group: {nova}")
     if grade := _text(classification.get("nutriscore_grade")):
@@ -512,14 +558,21 @@ def product_context(analysis: Any) -> list[str]:
     if additives := _join_items(classification.get("additives_tags")):
         lines.append("Additives detected: " + ", ".join(additives))
 
-    scoring = analysis.get("scoring") if isinstance(analysis.get("scoring"), dict) else {}
+    scoring = (
+        analysis.get("scoring") if isinstance(analysis.get("scoring"), dict) else {}
+    )
     scores = scoring.get("scores") if isinstance(scoring.get("scores"), dict) else {}
     overall = _number(scores.get("overall"))
     if overall is not None:
         grade = _text(scores.get("grade"))
         label = _text(scores.get("grade_label"))
-        descriptor = " ".join(part for part in (grade, f"({label})" if label else None) if part)
-        lines.append(f"NutriTrust score: {overall}/100" + (f" grade {descriptor}" if descriptor else ""))
+        descriptor = " ".join(
+            part for part in (grade, f"({label})" if label else None) if part
+        )
+        lines.append(
+            f"NutriTrust score: {overall}/100"
+            + (f" grade {descriptor}" if descriptor else "")
+        )
         lines.append(
             "Note: the NutriTrust score is a NutriTrust composite, not an official "
             "Nutri-Score classification or medical judgment."
@@ -529,7 +582,11 @@ def product_context(analysis: Any) -> list[str]:
     if explanation := _text(scoring.get("explanation")):
         lines.append(f"Score breakdown: {explanation}")
 
-    health = analysis.get("health_analysis") if isinstance(analysis.get("health_analysis"), dict) else {}
+    health = (
+        analysis.get("health_analysis")
+        if isinstance(analysis.get("health_analysis"), dict)
+        else {}
+    )
     lines.extend(_finding_lines(health.get("findings")))
 
     missing = _join_items(analysis.get("missing_data_warnings"))
@@ -579,9 +636,8 @@ def build_messages(profile: Any, analysis: Any) -> list[dict[str, str]]:
     ]
 
 
-# ---------------------------------------------------------------------------
 # Orchestration (no model dependency; ``generate`` is injected)
-# ---------------------------------------------------------------------------
+
 
 def _describe(exc: BaseException) -> str:
     """A never-empty description, so a failure is always diagnosable."""
@@ -648,7 +704,10 @@ def summarize_analysis(
     # With nothing measured, neither the model nor a reader can draw any
     # conclusion, so answer factually without spending a generation on it.
     if data_sufficiency(analysis) == "none":
-        return fallback("ok", "The analysis had no nutrition, ingredient, or allergen data to reason from.")
+        return fallback(
+            "ok",
+            "The analysis had no nutrition, ingredient, or allergen data to reason from.",
+        )
 
     messages = build_messages(profile, analysis)
     try:
@@ -677,9 +736,8 @@ def summarize_analysis(
     )
 
 
-# ---------------------------------------------------------------------------
 # Local model loading and generation
-# ---------------------------------------------------------------------------
+
 
 def _load_bundle(model_path: str) -> tuple[Any, Any]:
     """Load and cache the tokenizer and model for ``model_path``.
@@ -711,7 +769,9 @@ def _load_bundle(model_path: str) -> tuple[Any, Any]:
         return _bundle
 
 
-def _generate_locked(text_messages: list[dict[str, str]], max_new_tokens: int, model_path: str) -> str:
+def _generate_locked(
+    text_messages: list[dict[str, str]], max_new_tokens: int, model_path: str
+) -> str:
     import torch
 
     tokenizer, model = _load_bundle(model_path)
@@ -726,7 +786,7 @@ def _generate_locked(text_messages: list[dict[str, str]], max_new_tokens: int, m
             do_sample=False,
             repetition_penalty=1.05,
         )
-    generated = output[:, inputs.input_ids.shape[1]:]
+    generated = output[:, inputs.input_ids.shape[1] :]
     return tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
 
 
@@ -758,6 +818,7 @@ def generate_text(
     timeout_seconds: float = 120.0,
 ) -> str:
     """Generate a summary with the local model, serialized and time-bounded."""
+
     # The lock serializes access to the single model instance; a timed-out
     # worker keeps it until it finishes so two requests never share the model.
     def run() -> str:

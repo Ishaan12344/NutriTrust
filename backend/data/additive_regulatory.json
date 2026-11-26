@@ -1,0 +1,2348 @@
+{
+  "framework": "FSSAI Food Safety and Standards (Food Products Standards and Food Additives) Regulations, 2011, as consolidated 2026-11-26",
+  "important_notice": "FSSAI states that its compendium is a ready reference, not a legal document; original gazette notifications prevail.",
+  "references": {
+    "COMP-A-v3": {
+      "document": "FSSAI Compendium, Appendix A (Food Additives), Version 3",
+      "version": "01.08.2025",
+      "url": "https://fssai.gov.in/docs/food-law/regulations/compendium/food-products-standards/Appendix%20A(4).pdf",
+      "citation": "FSSAI Compendium, Appendix A v3 (01.08.2025)"
+    },
+    "COMP-CH3-v4": {
+      "document": "FSSAI Compendium, Chapter 3 (Substances added to food), Version 4",
+      "version": "01.08.2025",
+      "url": "https://fssai.gov.in/docs/food-law/regulations/compendium/food-products-standards/Chapter%203_Substances%20added%20to%20food(1).pdf",
+      "citation": "FSSAI Compendium, Ch.3 v4 (01.08.2025)"
+    },
+    "PR-2011": {
+      "document": "Food Safety and Standards (Food Products Standards and Food Additives) Regulations, 2011",
+      "version": "Gazette F.No. 2-15015/30/2010, 01 Aug 2011; commenced 05 Aug 2011",
+      "url": "https://fssai.gov.in/upload/uploadfiles/files/Food_Additives_Regulations.pdf",
+      "citation": "FSSAI FPS&FA Regulations 2011, gazette F.No. 2-15015/30/2010"
+    },
+    "AMD-81": {
+      "document": "FSSAI Amendment 81 (tocopherols in FC 2.1.3, Note 358)",
+      "version": "11 Jan 2023",
+      "url": "https://fssai.gov.in/docs/food-law/regulations/amendments/food-products-standards/Gazette_Notification.pdf",
+      "citation": "FSSAI Amendment 81, 11 Jan 2023"
+    },
+    "CODEX-INS": {
+      "document": "Codex INS table (supplementary only)",
+      "version": "INS 306 deleted in 2007; tocopherols are 307a/307b/307c",
+      "url": "https://www.fao.org/fileadmin/user_upload/codexalimentarius/committee/docs/CCFA_INFDoc_INSTABLEe.pdf",
+      "citation": "Codex INS table, deleted/re-used numbers"
+    }
+  },
+  "additives": {
+    "E500": {
+      "name": "Sodium carbonates",
+      "ins": ["500(i)", "500(ii)", "500(iii)"],
+      "synonyms": ["sodium carbonate", "anhydrous sodium carbonate", "soda ash", "sodium hydrogen carbonate", "sodium bicarbonate", "sodium sesquicarbonate"],
+      "functional_class": ["acidity regulator", "buffering agent", "raising agent"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["GMP applies except in categories listed in the Annex to GMP.", "Exact INS salt must be confirmed from the label."],
+      "category_rules": [
+        {
+          "category": "1.3.1 condensed/evaporated/sweetened condensed milk",
+          "category_patterns": ["condensed milk", "evaporated milk", "sweetened condensed milk"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 3000, "unit": "mg/kg", "basis": "final product", "original_text": "3,000 mg/kg"},
+          "conditions": ["Singly or in combination.", "Total salts must not exceed 3,000 mg/kg expressed as phosphates/carbonates/citrates/chlorides."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 1, FC 1.3.1"}
+        }
+      ]
+    },
+    "E621": {
+      "name": "Monosodium glutamate",
+      "ins": ["621"],
+      "synonyms": ["monosodium glutamate", "monosodium L-glutamate", "MSG", "sodium glutamate"],
+      "functional_class": ["flavour enhancer"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["A generic 'glutamate' or 'flavour enhancer' declaration does not verify INS 621."],
+      "category_rules": [
+        {
+          "category": "6.x noodles, gluten-free pasta and hypoproteic pasta",
+          "category_patterns": ["noodle", "gluten-free pasta", "hypoproteic pasta"],
+          "status": "permitted_with_conditions",
+          "max_level": null,
+          "conditions": ["Note 256: for use in noodles, gluten-free pasta and pasta intended for hypoproteic diets only."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 6, Note 256"}
+        },
+        {
+          "category": "14.1 ready-to-drink products",
+          "category_patterns": ["ready-to-drink", "ready to drink"],
+          "status": "permitted_with_conditions",
+          "max_level": null,
+          "conditions": ["Note 160 applies to ready-to-drink entries."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 14, Note 160"}
+        }
+      ]
+    },
+    "E223": {
+      "name": "Sodium metabisulphite",
+      "ins": ["223"],
+      "synonyms": ["sodium metabisulphite", "sodium metabisulfite", "sodium pyrosulfite", "sodium disulfite"],
+      "functional_class": ["preservative", "antioxidant"],
+      "permission": "conditional_only",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["Not in the GMP table.", "Limits are expressed as residual SO2 (Note 44); never compare a compound-mass result directly."],
+      "category_rules": [
+        {
+          "category": "11.1.1 white sugar",
+          "category_patterns": ["white sugar", "refined sugar"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 15, "unit": "mg/kg", "basis": "residual SO2", "original_text": "15 mg/kg as residual SO2"},
+          "conditions": ["Residual SO2 basis; analytical basis must match before any compliance comparison."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 11, FC 11.1.1, Note 44"}
+        },
+        {
+          "category": "corn flour",
+          "category_patterns": ["corn flour", "maize flour"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 100, "unit": "mg/kg", "basis": "residual SO2", "original_text": "100 mg/kg as residual SO2"},
+          "conditions": ["Residual SO2 basis."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 11, FC 11.1.3, Note 44"}
+        }
+      ]
+    },
+    "E503": {
+      "name": "Ammonium carbonates",
+      "ins": ["503(i)", "503(ii)"],
+      "synonyms": ["ammonium carbonate", "ammonium bicarbonate", "ammonium hydrogen carbonate", "baker's ammonia"],
+      "functional_class": ["acidity regulator", "leavening agent"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["'Baker's ammonia' does not resolve whether the form is 503(i) or 503(ii)."],
+      "category_rules": []
+    },
+    "E306": {
+      "name": "Mixed tocopherols (E306 alias)",
+      "ins": [],
+      "synonyms": ["mixed tocopherols", "vitamin E concentrate", "E306"],
+      "functional_class": ["antioxidant"],
+      "permission": "unable_to_verify",
+      "references": ["CODEX-INS", "COMP-A-v3", "AMD-81"],
+      "notes": ["No INS 306 entry was verified in FSSAI Appendix A.", "Codex replaced INS 306 with INS 307b; FSSAI uses tocopherols 307a/307b/307c."],
+      "category_rules": []
+    },
+    "E320": {
+      "name": "Butylated hydroxyanisole (BHA)",
+      "ins": ["320"],
+      "synonyms": ["BHA", "butylated hydroxyanisole", "2-tert-butyl-4-methoxyphenol"],
+      "functional_class": ["antioxidant"],
+      "permission": "conditional_only",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["Not in the GMP table.", "Exact food category is required; do not generalise one category's limit."],
+      "category_rules": [
+        {
+          "category": "1.5.1 milk/cream powder",
+          "category_patterns": ["milk powder", "cream powder"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 100, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Notes 130/133/180/196: singly or in combination with BHT/TBHQ/propyl gallate."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 1, FC 1.5.1"}
+        },
+        {
+          "category": "2.2.2 fat spreads",
+          "category_patterns": ["fat spread", "margarine"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 200, "unit": "mg/kg", "basis": "fat or oil basis"},
+          "conditions": ["Note 15: limit applies on the fat or oil basis."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 2, FC 2.2.2, Note 15"}
+        },
+        {
+          "category": "12.2 herbs and condiments",
+          "category_patterns": ["herbs", "condiments", "spices"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 200, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Singly or in combination with other antioxidants."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 12, FC 12.2"}
+        },
+        {
+          "category": "15.1 potato/cereal/flour/starch-based snacks",
+          "category_patterns": ["potato snack", "cereal snack", "flour-based snack", "starch-based snack"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 45, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Singly or in combination with other antioxidants."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 15, FC 15.1"}
+        }
+      ]
+    },
+    "E302": {
+      "name": "Calcium ascorbate",
+      "ins": ["302"],
+      "synonyms": ["calcium ascorbate", "calcium L-ascorbate"],
+      "functional_class": ["antioxidant"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3"],
+      "notes": ["Distinct from INS 300 ascorbic acid and INS 301 sodium ascorbate."],
+      "category_rules": [
+        {
+          "category": "14.1.2.3 fruit juice concentrates",
+          "category_patterns": ["fruit juice concentrate", "concentrated fruit juice"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 1000, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Notes 127/33/40 apply."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 14, FC 14.1.2.3"}
+        }
+      ]
+    },
+    "E330": {
+      "name": "Citric acid",
+      "ins": ["330"],
+      "synonyms": ["citric acid", "2-hydroxy-1,2,3-propanetricarboxylic acid"],
+      "functional_class": ["acidity regulator"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["No universal numeric maximum; category rows must be read individually."],
+      "category_rules": [
+        {
+          "category": "14.1.3.3 concentrates of fruit nectar",
+          "category_patterns": ["fruit nectar", "nectar concentrate"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 5000, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Notes 127/91 apply."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 14, FC 14.1.3.3"}
+        },
+        {
+          "category": "14.1.2.3 fruit juice concentrates (industrial use)",
+          "category_patterns": ["fruit juice concentrate", "concentrated fruit juice"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 10, "unit": "mg/kg", "basis": "final product"},
+          "conditions": ["Note 82: for industrial use at 1,000 mg/kg maximum."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 14, FC 14.1.2.3, Note 82"}
+        }
+      ]
+    },
+    "E415": {
+      "name": "Xanthan gum",
+      "ins": ["415"],
+      "synonyms": ["xanthan gum", "xanthan"],
+      "functional_class": ["thickener", "stabiliser", "emulsifier"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3"],
+      "notes": ["Numeric values near FC 6.4.2/6.4.3 could not be reliably attributed in extracted tables and were not recorded."],
+      "category_rules": [
+        {
+          "category": "6.4.2 dried pastas and noodles",
+          "category_patterns": ["dried pasta", "dried noodles", "pasta"],
+          "status": "permitted_gmp",
+          "max_level": null,
+          "conditions": ["Note 211 applies."],
+          "reference": {"id": "COMP-A-v3", "section": "Table 6, FC 6.4.2, Note 211"}
+        }
+      ]
+    },
+    "E407": {
+      "name": "Carrageenan",
+      "ins": ["407"],
+      "synonyms": ["carrageenan", "carrageenin", "Irish moss gum"],
+      "functional_class": ["gelling agent", "thickener", "stabiliser"],
+      "permission": "permitted_gmp",
+      "references": ["COMP-A-v3", "COMP-CH3-v4"],
+      "notes": ["Distinct from processed eucheuma seaweed INS 407a."],
+      "category_rules": [
+        {
+          "category": "1.3.1 condensed/evaporated/sweetened condensed milk",
+          "category_patterns": ["condensed milk", "evaporated milk", "sweetened condensed milk"],
+          "status": "permitted_with_conditions",
+          "max_level": {"value": 150, "unit": "mg/kg", "basis": "final product"},
+          "conditions": [],
+          "reference": {"id": "COMP-A-v3", "section": "Table 1, FC 1.3.1"}
+        }
+      ]
+    },
+  "E100": {
+    "name": "Curcumin",
+    "ins": ["100(i)"],
+    "synonyms": ["curcumin", "turmeric extract colour"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; permission and category limits not yet verified against FSSAI Appendix A.", "Whole turmeric as a spice is a food, not this additive."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "fats and oils", "confectionery", "bakery", "beverages", "snacks", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Verify category-specific colour list in Appendix A Table 1 before any claim."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E101": {
+    "name": "Riboflavin",
+    "ins": ["101(i)", "101(ii)"],
+    "synonyms": ["riboflavin", "riboflavin 5'-phosphate sodium", "vitamin B2 (as colour)"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Riboflavin declared as a nutrient is not necessarily used as a colour."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "bakery", "beverages", "snacks", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Nutrient declaration of riboflavin does not imply colour use; confirm additive purpose."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E102": {
+    "name": "Tartrazine",
+    "ins": ["102"],
+    "synonyms": ["tartrazine", "FD&C Yellow 5", "Yellow 5"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; only listed categories are candidates; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E110": {
+    "name": "Sunset yellow FCF",
+    "ins": ["110"],
+    "synonyms": ["sunset yellow FCF", "sunset yellow", "FD&C Yellow 6", "Yellow 6"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E122": {
+    "name": "Carmoisine (azorubine)",
+    "ins": ["122"],
+    "synonyms": ["carmoisine", "azorubine"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E124": {
+    "name": "Ponceau 4R",
+    "ins": ["124"],
+    "synonyms": ["ponceau 4R", "cochineal red A"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E129": {
+    "name": "Allura red AC",
+    "ins": ["129"],
+    "synonyms": ["allura red AC", "allura red", "FD&C Red 40", "Red 40"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E132": {
+    "name": "Indigotine (indigo carmine)",
+    "ins": ["132"],
+    "synonyms": ["indigotine", "indigo carmine", "FD&C Blue 2"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E133": {
+    "name": "Brilliant blue FCF",
+    "ins": ["133"],
+    "synonyms": ["brilliant blue FCF", "brilliant blue", "FD&C Blue 1"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E141": {
+    "name": "Chlorophyllins, copper complexes",
+    "ins": ["141(i)", "141(ii)"],
+    "synonyms": ["chlorophyllin copper complex", "sodium copper chlorophyllin"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "confectionery", "bakery", "beverages", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Natural colour; confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E143": {
+    "name": "Fast green FCF",
+    "ins": ["143"],
+    "synonyms": ["fast green FCF", "fast green", "FD&C Green 3"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; synthetic colour, category limits not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 14.1.4 water-based flavoured drinks; 15.1 fried snacks",
+        "category_patterns": ["confectionery", "bakery", "flavoured drinks", "fried snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product (category-specific)"},
+        "conditions": ["Synthetic colour; confirm exact category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, synthetic colours (unverified)"}
+      }
+    ]
+  },
+  "E150A": {
+    "name": "Caramel I - plain",
+    "ins": ["150a"],
+    "synonyms": ["plain caramel", "caramel colour class I", "caramel I"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "A bare 'caramel' declaration may be flavouring or sugar caramel and does not resolve to 150a."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "bakery", "beverages", "snacks", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Bare 'caramel' label does not resolve to 150a; confirm class from label."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E150C": {
+    "name": "Caramel III - ammonia process",
+    "ins": ["150c"],
+    "synonyms": ["ammonia caramel", "caramel colour class III", "caramel III"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["sauces", "beverages", "bakery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E150D": {
+    "name": "Caramel IV - sulphite ammonia process",
+    "ins": ["150d"],
+    "synonyms": ["sulphite ammonia caramel", "sulfite ammonia caramel", "caramel colour class IV", "caramel IV"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in colas; not yet verified."],
+    "category_rules": [
+      {
+        "category": "14.1.4 water-based flavoured drinks (colas); 1.0-16.0 broad categories",
+        "category_patterns": ["cola", "flavoured drinks", "sauces", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in colas; confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E160A": {
+    "name": "Carotenes",
+    "ins": ["160a(i)", "160a(ii)"],
+    "synonyms": ["beta-carotene", "beta carotene", "carotenes", "natural carotene"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Beta-carotene as a nutrient is not necessarily used as a colour."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "fats and oils", "bakery", "beverages", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Nutrient beta-carotene does not imply colour use; confirm additive purpose."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E160B": {
+    "name": "Annatto extracts",
+    "ins": ["160b(i)", "160b(ii)"],
+    "synonyms": ["annatto", "bixin", "norbixin", "annatto extract"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "bakery", "snacks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E162": {
+    "name": "Beet red",
+    "ins": ["162"],
+    "synonyms": ["beet red", "betanin", "beetroot red"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["dairy", "confectionery", "beverages", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E163": {
+    "name": "Anthocyanins",
+    "ins": ["163(i)", "163(ii)"],
+    "synonyms": ["anthocyanins", "grape skin extract", "black carrot extract colour"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (colour use)",
+        "category_patterns": ["beverages", "confectionery", "desserts", "jams"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E171": {
+    "name": "Titanium dioxide",
+    "ins": ["171"],
+    "synonyms": ["titanium dioxide", "TiO2"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; regulatory status differs across jurisdictions; verify the current FSSAI position before any claim."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery (candidate only)",
+        "category_patterns": ["confectionery", "chewing gum", "coatings"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product"},
+        "conditions": ["Do not assume permitted; several jurisdictions have restricted E171. Verify current FSSAI position."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified; status contested)"}
+      }
+    ]
+  },
+  "E172": {
+    "name": "Iron oxides",
+    "ins": ["172(i)", "172(ii)", "172(iii)"],
+    "synonyms": ["iron oxide black", "iron oxide red", "iron oxide yellow", "iron oxides"],
+    "functional_class": ["colour"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 15.1 snack coatings",
+        "category_patterns": ["confectionery", "snack coatings", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Typically surface colouring; confirm category and limit in Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, colour list (unverified)"}
+      }
+    ]
+  },
+  "E200": {
+    "name": "Sorbic acid",
+    "ins": ["200"],
+    "synonyms": ["sorbic acid", "2,4-hexadienoic acid"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Sorbate limits are usually expressed as sorbic acid."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 5.0 confectionery; 14.1.4 drinks; 15.1 snacks",
+        "category_patterns": ["fruit products", "confectionery", "flavoured drinks", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sorbic acid"},
+        "conditions": ["Limits expressed as sorbic acid; confirm category and limit in Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E202": {
+    "name": "Potassium sorbate",
+    "ins": ["202"],
+    "synonyms": ["potassium sorbate"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Limits are usually expressed as sorbic acid; do not compare compound mass directly."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 5.0 confectionery; 14.1.4 drinks; 15.1 snacks",
+        "category_patterns": ["fruit products", "confectionery", "flavoured drinks", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sorbic acid"},
+        "conditions": ["Do not compare compound mass directly to sorbic acid limits; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E210": {
+    "name": "Benzoic acid",
+    "ins": ["210"],
+    "synonyms": ["benzoic acid"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Benzoate limits are usually expressed as benzoic acid."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 14.1.4 drinks; 15.1 sauces/pickles",
+        "category_patterns": ["fruit products", "flavoured drinks", "sauces", "pickles"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as benzoic acid"},
+        "conditions": ["Limits expressed as benzoic acid; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E211": {
+    "name": "Sodium benzoate",
+    "ins": ["211"],
+    "synonyms": ["sodium benzoate"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; very common in Indian beverages, sauces and pickles; not yet verified.", "Limits are usually expressed as benzoic acid."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 14.1.4 drinks; 15.1 sauces/pickles",
+        "category_patterns": ["fruit products", "flavoured drinks", "sauces", "pickles"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as benzoic acid"},
+        "conditions": ["Limits expressed as benzoic acid; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E212": {
+    "name": "Potassium benzoate",
+    "ins": ["212"],
+    "synonyms": ["potassium benzoate"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 14.1.4 drinks; 15.1 sauces/pickles",
+        "category_patterns": ["fruit products", "flavoured drinks", "sauces", "pickles"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as benzoic acid"},
+        "conditions": ["Limits expressed as benzoic acid; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E220": {
+    "name": "Sulphur dioxide",
+    "ins": ["220"],
+    "synonyms": ["sulphur dioxide", "sulfur dioxide", "SO2"],
+    "functional_class": ["preservative", "antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Sulphite limits are expressed as residual SO2 (see E223 note)."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 14.1.4 drinks; 15.1 snacks",
+        "category_patterns": ["dried fruit", "fruit products", "wine", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as residual SO2"},
+        "conditions": ["Limits expressed as residual SO2; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E224": {
+    "name": "Potassium metabisulphite",
+    "ins": ["224"],
+    "synonyms": ["potassium metabisulphite", "potassium metabisulfite", "potassium pyrosulfite", "KMS"],
+    "functional_class": ["preservative", "antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Limits are expressed as residual SO2."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables; 14.1.4 drinks; 15.1 snacks",
+        "category_patterns": ["dried fruit", "fruit products", "wine", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as residual SO2"},
+        "conditions": ["Limits expressed as residual SO2; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E234": {
+    "name": "Nisin",
+    "ins": ["234"],
+    "synonyms": ["nisin"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0 dairy; 8.0 meat",
+        "category_patterns": ["dairy", "cheese", "meat products"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product"},
+        "conditions": ["Typically dairy/meat; confirm category and limit in Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E249": {
+    "name": "Potassium nitrite",
+    "ins": ["249"],
+    "synonyms": ["potassium nitrite"],
+    "functional_class": ["preservative", "colour fixative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Nitrite limits are usually expressed as sodium nitrite."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products",
+        "category_patterns": ["cured meat", "meat products"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sodium nitrite"},
+        "conditions": ["Meat products only; limits expressed as sodium nitrite; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E250": {
+    "name": "Sodium nitrite",
+    "ins": ["250"],
+    "synonyms": ["sodium nitrite"],
+    "functional_class": ["preservative", "colour fixative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified; typically meat products."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products",
+        "category_patterns": ["cured meat", "meat products"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sodium nitrite"},
+        "conditions": ["Typically meat products; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E251": {
+    "name": "Sodium nitrate",
+    "ins": ["251"],
+    "synonyms": ["sodium nitrate"],
+    "functional_class": ["preservative", "colour fixative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products",
+        "category_patterns": ["cured meat", "meat products"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sodium nitrite"},
+        "conditions": ["Meat products; limits expressed as sodium nitrite; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E252": {
+    "name": "Potassium nitrate",
+    "ins": ["252"],
+    "synonyms": ["potassium nitrate", "saltpetre"],
+    "functional_class": ["preservative", "colour fixative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products",
+        "category_patterns": ["cured meat", "meat products"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as sodium nitrite"},
+        "conditions": ["Meat products; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E260": {
+    "name": "Acetic acid, glacial",
+    "ins": ["260"],
+    "synonyms": ["acetic acid", "glacial acetic acid", "vinegar acid"],
+    "functional_class": ["acidity regulator", "preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Vinegar as an ingredient is a food, not necessarily this additive."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "sauces", "pickles", "bakery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Vinegar as ingredient is a food, not this additive; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1/2, acidity regulators (unverified)"}
+      }
+    ]
+  },
+  "E263": {
+    "name": "Calcium acetate",
+    "ins": ["263"],
+    "synonyms": ["calcium acetate"],
+    "functional_class": ["preservative", "acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "sauces", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1/2 (unverified)"}
+      }
+    ]
+  },
+  "E270": {
+    "name": "Lactic acid",
+    "ins": ["270"],
+    "synonyms": ["lactic acid", "L(+)-lactic acid"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "bakery", "sauces"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, acidity regulators (unverified)"}
+      }
+    ]
+  },
+  "E281": {
+    "name": "Sodium propionate",
+    "ins": ["281"],
+    "synonyms": ["sodium propionate"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Propionate limits are usually expressed as propionic acid."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares",
+        "category_patterns": ["bread", "bakery", "buns"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as propionic acid"},
+        "conditions": ["Bakery; limits expressed as propionic acid; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E282": {
+    "name": "Calcium propionate",
+    "ins": ["282"],
+    "synonyms": ["calcium propionate"],
+    "functional_class": ["preservative"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; very common in Indian bread; not yet verified."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares",
+        "category_patterns": ["bread", "bakery", "buns"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as propionic acid"},
+        "conditions": ["Bakery; limits expressed as propionic acid; confirm Appendix A Table 2."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 2, preservatives (unverified)"}
+      }
+    ]
+  },
+  "E296": {
+    "name": "Malic acid",
+    "ins": ["296"],
+    "synonyms": ["malic acid", "DL-malic acid", "L-malic acid"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["beverages", "confectionery", "bakery", "sauces"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, acidity regulators (unverified)"}
+      }
+    ]
+  },
+  "E300": {
+    "name": "Ascorbic acid",
+    "ins": ["300"],
+    "synonyms": ["ascorbic acid", "L-ascorbic acid", "vitamin C (as additive)"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Vitamin C declared as a nutrient is not necessarily used as an additive."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "bakery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Nutrient vitamin C does not imply additive use; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E301": {
+    "name": "Sodium ascorbate",
+    "ins": ["301"],
+    "synonyms": ["sodium ascorbate", "sodium L-ascorbate"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "bakery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E307": {
+    "name": "Tocopherols (alpha-tocopherol)",
+    "ins": ["307a", "307b", "307c"],
+    "synonyms": ["alpha-tocopherol", "d-alpha-tocopherol", "dl-alpha-tocopherol", "gamma-tocopherol", "delta-tocopherol"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["CODEX-INS", "AMD-81", "COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "See also the E306 alias record; 307a/307b/307c must be confirmed from the label."],
+    "category_rules": [
+      {
+        "category": "2.0 fats and oils; 5.0 confectionery; 15.1 snacks",
+        "category_patterns": ["fats and oils", "confectionery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["307a/307b/307c must be confirmed from label; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E310": {
+    "name": "Propyl gallate",
+    "ins": ["310"],
+    "synonyms": ["propyl gallate"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified; likely category-specific."],
+    "category_rules": [
+      {
+        "category": "2.0 fats and oils; 15.1 snacks",
+        "category_patterns": ["fats and oils", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product"},
+        "conditions": ["Likely category-specific; confirm Appendix A Table 1."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E319": {
+    "name": "Tertiary butylhydroquinone (TBHQ)",
+    "ins": ["319"],
+    "synonyms": ["TBHQ", "tertiary butylhydroquinone", "tert-butylhydroquinone"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in fried snacks and instant noodles; not yet verified."],
+    "category_rules": [
+      {
+        "category": "2.0 fats and oils; 15.1 fried snacks; 6.0 instant noodles",
+        "category_patterns": ["fats and oils", "fried snacks", "instant noodles"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product"},
+        "conditions": ["Common in fried snacks/instant noodles; confirm category-specific limit in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E321": {
+    "name": "Butylated hydroxytoluene (BHT)",
+    "ins": ["321"],
+    "synonyms": ["BHT", "butylated hydroxytoluene"],
+    "functional_class": ["antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified; likely category-specific, often with BHA/TBHQ."],
+    "category_rules": [
+      {
+        "category": "2.0 fats and oils; 15.1 snacks",
+        "category_patterns": ["fats and oils", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "final product"},
+        "conditions": ["Likely category-specific; often combined with BHA/TBHQ; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, antioxidants (unverified)"}
+      }
+    ]
+  },
+  "E322": {
+    "name": "Lecithins",
+    "ins": ["322(i)", "322(ii)"],
+    "synonyms": ["lecithin", "soy lecithin", "soya lecithin", "sunflower lecithin", "lecithins"],
+    "functional_class": ["emulsifier", "antioxidant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; very common in chocolates and biscuits; not yet verified.", "Soy lecithin is also an allergen declaration."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery; 7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["chocolate", "biscuits", "bakery", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Soy lecithin triggers allergen declaration; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, emulsifiers (unverified)"}
+      }
+    ]
+  },
+  "E325": {
+    "name": "Sodium lactate",
+    "ins": ["325"],
+    "synonyms": ["sodium lactate"],
+    "functional_class": ["acidity regulator", "humectant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["meat products", "bakery", "sauces"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E331": {
+    "name": "Sodium citrates",
+    "ins": ["331(i)", "331(ii)", "331(iii)"],
+    "synonyms": ["sodium citrate", "trisodium citrate", "sodium dihydrogen citrate", "disodium citrate"],
+    "functional_class": ["acidity regulator", "emulsifying salt"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Exact salt must be confirmed from the label."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "confectionery", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Exact salt must be confirmed from label; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E332": {
+    "name": "Potassium citrates",
+    "ins": ["332(i)", "332(ii)"],
+    "synonyms": ["potassium citrate", "tripotassium citrate", "potassium dihydrogen citrate"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E333": {
+    "name": "Calcium citrates",
+    "ins": ["333(i)", "333(ii)", "333(iii)"],
+    "synonyms": ["calcium citrate", "tricalcium citrate"],
+    "functional_class": ["acidity regulator", "firming agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "bakery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E334": {
+    "name": "Tartaric acid (L(+)-)",
+    "ins": ["334"],
+    "synonyms": ["tartaric acid", "L(+)-tartaric acid"],
+    "functional_class": ["acidity regulator", "antioxidant synergist"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["beverages", "bakery", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E338": {
+    "name": "Phosphoric acid",
+    "ins": ["338"],
+    "synonyms": ["phosphoric acid", "orthophosphoric acid"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in colas; limits are expressed as P2O5; not yet verified."],
+    "category_rules": [
+      {
+        "category": "14.1.4 water-based flavoured drinks (colas)",
+        "category_patterns": ["cola", "flavoured drinks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Common in colas; limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, acidity regulators (unverified)"}
+      }
+    ]
+  },
+  "E339": {
+    "name": "Sodium phosphates",
+    "ins": ["339(i)", "339(ii)", "339(iii)"],
+    "synonyms": ["sodium phosphate", "monosodium phosphate", "disodium phosphate", "trisodium phosphate"],
+    "functional_class": ["acidity regulator", "emulsifying salt", "sequestrant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Phosphate limits are usually expressed as P2O5."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "meat products", "bakery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E340": {
+    "name": "Potassium phosphates",
+    "ins": ["340(i)", "340(ii)", "340(iii)"],
+    "synonyms": ["potassium phosphate", "dipotassium phosphate", "tripotassium phosphate"],
+    "functional_class": ["acidity regulator", "emulsifying salt"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "meat products", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E341": {
+    "name": "Calcium phosphates",
+    "ins": ["341(i)", "341(ii)", "341(iii)"],
+    "synonyms": ["calcium phosphate", "monocalcium phosphate", "dicalcium phosphate", "tricalcium phosphate"],
+    "functional_class": ["raising agent", "firming agent", "anticaking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E401": {
+    "name": "Sodium alginate",
+    "ins": ["401"],
+    "synonyms": ["sodium alginate", "alginate"],
+    "functional_class": ["thickener", "gelling agent", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "bakery", "confectionery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E406": {
+    "name": "Agar",
+    "ins": ["406"],
+    "synonyms": ["agar", "agar-agar", "china grass"],
+    "functional_class": ["gelling agent", "thickener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "confectionery", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E410": {
+    "name": "Locust bean gum",
+    "ins": ["410"],
+    "synonyms": ["locust bean gum", "carob bean gum"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in ice cream; not yet verified."],
+    "category_rules": [
+      {
+        "category": "3.0 edible ices; 1.0-16.0 broad categories",
+        "category_patterns": ["ice cream", "dairy", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in ice cream; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E412": {
+    "name": "Guar gum",
+    "ins": ["412"],
+    "synonyms": ["guar gum", "guar"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; very common in Indian ice cream and sauces; not yet verified."],
+    "category_rules": [
+      {
+        "category": "3.0 edible ices; 1.0-16.0 broad categories",
+        "category_patterns": ["ice cream", "sauces", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Very common in Indian ice cream/sauces; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E413": {
+    "name": "Tragacanth gum",
+    "ins": ["413"],
+    "synonyms": ["tragacanth", "gum tragacanth"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["confectionery", "bakery", "sauces"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E414": {
+    "name": "Gum arabic (acacia gum)",
+    "ins": ["414"],
+    "synonyms": ["gum arabic", "acacia gum", "gum acacia"],
+    "functional_class": ["thickener", "stabiliser", "emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["confectionery", "beverages", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E418": {
+    "name": "Gellan gum",
+    "ins": ["418"],
+    "synonyms": ["gellan gum", "gellan"],
+    "functional_class": ["gelling agent", "thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["dairy", "beverages", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E420": {
+    "name": "Sorbitol",
+    "ins": ["420(i)", "420(ii)"],
+    "synonyms": ["sorbitol", "sorbitol syrup", "D-glucitol"],
+    "functional_class": ["sweetener", "humectant", "bulking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Polyol labelling rules may apply."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 1.0-16.0 broad categories",
+        "category_patterns": ["sweeteners", "confectionery", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Polyol labelling rules may apply; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E421": {
+    "name": "Mannitol",
+    "ins": ["421"],
+    "synonyms": ["mannitol"],
+    "functional_class": ["sweetener", "anticaking agent", "bulking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 1.0-16.0 broad categories",
+        "category_patterns": ["sweeteners", "confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Polyol labelling rules may apply; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3 (unverified)"}
+      }
+    ]
+  },
+  "E440": {
+    "name": "Pectins",
+    "ins": ["440(i)", "440(ii)"],
+    "synonyms": ["pectin", "pectins", "amidated pectin"],
+    "functional_class": ["gelling agent", "thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in jams; not yet verified."],
+    "category_rules": [
+      {
+        "category": "4.0 fruits/vegetables (jams); 1.0-16.0 broad categories",
+        "category_patterns": ["jams", "fruit products", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in jams; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E450": {
+    "name": "Diphosphates",
+    "ins": ["450(i)", "450(ii)", "450(iii)", "450(v)", "450(vi)", "450(vii)"],
+    "synonyms": ["diphosphate", "disodium diphosphate", "tetrasodium diphosphate", "sodium acid pyrophosphate", "tetrasodium pyrophosphate"],
+    "functional_class": ["raising agent", "emulsifying salt", "sequestrant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Limits are usually expressed as P2O5."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["bakery", "meat products", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E451": {
+    "name": "Triphosphates",
+    "ins": ["451(i)", "451(ii)"],
+    "synonyms": ["sodium tripolyphosphate", "pentasodium triphosphate", "triphosphates"],
+    "functional_class": ["emulsifying salt", "sequestrant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products; 1.0-16.0 broad categories",
+        "category_patterns": ["meat products", "seafood", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E452": {
+    "name": "Polyphosphates",
+    "ins": ["452(i)", "452(ii)"],
+    "synonyms": ["sodium polyphosphate", "sodium hexametaphosphate", "polyphosphates"],
+    "functional_class": ["emulsifying salt", "sequestrant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "8.0 meat products; 1.0-16.0 broad categories",
+        "category_patterns": ["meat products", "seafood", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as P2O5"},
+        "conditions": ["Limits expressed as P2O5; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E460": {
+    "name": "Cellulose",
+    "ins": ["460(i)", "460(ii)"],
+    "synonyms": ["microcrystalline cellulose", "powdered cellulose", "cellulose powder", "MCC"],
+    "functional_class": ["anticaking agent", "bulking agent", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E464": {
+    "name": "Hydroxypropyl methyl cellulose",
+    "ins": ["464"],
+    "synonyms": ["hydroxypropyl methyl cellulose", "hypromellose", "HPMC"],
+    "functional_class": ["thickener", "emulsifier", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E466": {
+    "name": "Carboxymethyl cellulose, sodium",
+    "ins": ["466"],
+    "synonyms": ["carboxymethyl cellulose", "sodium carboxymethyl cellulose", "cellulose gum", "CMC"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in ice cream and bakery; not yet verified."],
+    "category_rules": [
+      {
+        "category": "3.0 edible ices; 7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["ice cream", "bakery", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in ice cream/bakery; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E471": {
+    "name": "Mono- and diglycerides of fatty acids",
+    "ins": ["471"],
+    "synonyms": ["mono- and diglycerides", "mono and diglycerides", "monoglycerides", "diglycerides", "glyceryl monostearate", "GMS"],
+    "functional_class": ["emulsifier", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; very common in bread, biscuits and ice cream; not yet verified.", "Source (animal or plant) is not resolved by the code."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares; 3.0 edible ices; 5.0 confectionery",
+        "category_patterns": ["bread", "biscuits", "ice cream", "chocolate"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Source (animal/plant) not resolved by code; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, emulsifiers (unverified)"}
+      }
+    ]
+  },
+  "E472E": {
+    "name": "Diacetyltartaric and fatty acid esters of glycerol (DATEM)",
+    "ins": ["472e"],
+    "synonyms": ["DATEM", "diacetyltartaric acid esters of mono- and diglycerides"],
+    "functional_class": ["emulsifier", "flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; bakery use; not yet verified."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares",
+        "category_patterns": ["bread", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Bakery use; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E473": {
+    "name": "Sucrose esters of fatty acids",
+    "ins": ["473"],
+    "synonyms": ["sucrose esters of fatty acids", "sucrose esters"],
+    "functional_class": ["emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "confectionery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E475": {
+    "name": "Polyglycerol esters of fatty acids",
+    "ins": ["475"],
+    "synonyms": ["polyglycerol esters of fatty acids", "polyglycerol esters"],
+    "functional_class": ["emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "confectionery", "dairy"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E476": {
+    "name": "Polyglycerol polyricinoleate (PGPR)",
+    "ins": ["476"],
+    "synonyms": ["PGPR", "polyglycerol polyricinoleate"],
+    "functional_class": ["emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; used in chocolate; not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery (chocolate)",
+        "category_patterns": ["chocolate", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Used in chocolate; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E481": {
+    "name": "Sodium stearoyl lactylate",
+    "ins": ["481(i)"],
+    "synonyms": ["sodium stearoyl lactylate", "sodium stearoyl-2-lactylate", "SSL"],
+    "functional_class": ["emulsifier", "flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; bakery use; not yet verified."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares",
+        "category_patterns": ["bread", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Bakery use; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E491": {
+    "name": "Sorbitan monostearate",
+    "ins": ["491"],
+    "synonyms": ["sorbitan monostearate", "Span 60"],
+    "functional_class": ["emulsifier", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "confectionery", "desserts"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E501": {
+    "name": "Potassium carbonates",
+    "ins": ["501(i)", "501(ii)"],
+    "synonyms": ["potassium carbonate", "potassium bicarbonate", "potassium hydrogen carbonate"],
+    "functional_class": ["acidity regulator", "raising agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Exact INS salt must be confirmed from the label."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["bakery", "beverages", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Exact salt must be confirmed from label; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E504": {
+    "name": "Magnesium carbonates",
+    "ins": ["504(i)", "504(ii)"],
+    "synonyms": ["magnesium carbonate", "magnesium hydroxide carbonate"],
+    "functional_class": ["acidity regulator", "anticaking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "snacks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E170": {
+    "name": "Calcium carbonates",
+    "ins": ["170(i)", "170(ii)"],
+    "synonyms": ["calcium carbonate", "calcium hydrogen carbonate"],
+    "functional_class": ["colour", "acidity regulator", "anticaking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Calcium carbonate as a fortificant or nutrient is not necessarily used as an additive."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Fortificant use separate from additive use; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E507": {
+    "name": "Hydrochloric acid",
+    "ins": ["507"],
+    "synonyms": ["hydrochloric acid"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["beverages", "sauces", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E516": {
+    "name": "Calcium sulphate",
+    "ins": ["516"],
+    "synonyms": ["calcium sulphate", "calcium sulfate", "gypsum"],
+    "functional_class": ["firming agent", "flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares; 1.0-16.0 broad categories",
+        "category_patterns": ["bakery", "dairy", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E524": {
+    "name": "Sodium hydroxide",
+    "ins": ["524"],
+    "synonyms": ["sodium hydroxide", "caustic soda"],
+    "functional_class": ["acidity regulator"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["beverages", "sauces", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E551": {
+    "name": "Silicon dioxide, amorphous",
+    "ins": ["551"],
+    "synonyms": ["silicon dioxide", "silica", "amorphous silica", "colloidal silicon dioxide"],
+    "functional_class": ["anticaking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in spice and salt mixes; not yet verified."],
+    "category_rules": [
+      {
+        "category": "12.0 salts and spices; 1.0-16.0 broad categories",
+        "category_patterns": ["spice mixes", "salt", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in spice/salt mixes; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E570": {
+    "name": "Fatty acids (stearic acid)",
+    "ins": ["570"],
+    "synonyms": ["stearic acid", "fatty acids"],
+    "functional_class": ["anticaking agent", "glazing agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["confectionery", "bakery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E572": {
+    "name": "Magnesium stearate",
+    "ins": ["572"],
+    "synonyms": ["magnesium stearate", "magnesium salts of fatty acids"],
+    "functional_class": ["anticaking agent", "emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["confectionery", "bakery", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E627": {
+    "name": "Disodium guanylate",
+    "ins": ["627"],
+    "synonyms": ["disodium guanylate", "disodium 5'-guanylate", "sodium guanylate"],
+    "functional_class": ["flavour enhancer"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; common in instant noodles and masala mixes; not yet verified."],
+    "category_rules": [
+      {
+        "category": "12.0 salts and spices; 6.0 instant noodles; 15.1 snacks",
+        "category_patterns": ["instant noodles", "masala mixes", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Common in instant noodles/masala mixes; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1, flavour enhancers (unverified)"}
+      }
+    ]
+  },
+  "E631": {
+    "name": "Disodium inosinate",
+    "ins": ["631"],
+    "synonyms": ["disodium inosinate", "disodium 5'-inosinate", "sodium inosinate"],
+    "functional_class": ["flavour enhancer"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "12.0 salts and spices; 6.0 instant noodles; 15.1 snacks",
+        "category_patterns": ["instant noodles", "masala mixes", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E635": {
+    "name": "Disodium 5'-ribonucleotides",
+    "ins": ["635"],
+    "synonyms": ["disodium 5'-ribonucleotides", "disodium ribonucleotides", "I+G", "flavour enhancer 627+631"],
+    "functional_class": ["flavour enhancer"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "'Flavour enhancer 627, 631' labels are matched by explicit E-codes, not by this alias."],
+    "category_rules": [
+      {
+        "category": "12.0 salts and spices; 6.0 instant noodles; 15.1 snacks",
+        "category_patterns": ["instant noodles", "masala mixes", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["'Flavour enhancer 627, 631' labels match explicit E-codes, not this alias; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E901": {
+    "name": "Beeswax, white and yellow",
+    "ins": ["901"],
+    "synonyms": ["beeswax", "white beeswax", "yellow beeswax"],
+    "functional_class": ["glazing agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery",
+        "category_patterns": ["confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Glazing agent; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E903": {
+    "name": "Carnauba wax",
+    "ins": ["903"],
+    "synonyms": ["carnauba wax"],
+    "functional_class": ["glazing agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery",
+        "category_patterns": ["confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Glazing agent; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E904": {
+    "name": "Shellac",
+    "ins": ["904"],
+    "synonyms": ["shellac"],
+    "functional_class": ["glazing agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified; animal-derived (lac)."],
+    "category_rules": [
+      {
+        "category": "5.0 confectionery",
+        "category_patterns": ["confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Animal-derived (lac); confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E920": {
+    "name": "L-Cysteine and its hydrochlorides",
+    "ins": ["920"],
+    "synonyms": ["L-cysteine", "L-cysteine hydrochloride"],
+    "functional_class": ["flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Source (animal or synthetic) is not resolved by the code."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares",
+        "category_patterns": ["bread", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Source (animal/synthetic) not resolved by code; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E924A": {
+    "name": "Potassium bromate",
+    "ins": ["924a"],
+    "synonyms": ["potassium bromate"],
+    "functional_class": ["flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; widely reported to have been removed from FSSAI permitted use in bread/bakery (2016) but not verified here; confirm against the gazette before marking not_permitted."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares (status contested)",
+        "category_patterns": ["bread", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "not permitted per reported 2016 removal (unverified)"},
+        "conditions": ["Reported removed from FSSAI permitted use in bread/bakery (2016); confirm gazette before marking not_permitted."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified; status contested)"}
+      }
+    ]
+  },
+  "E927A": {
+    "name": "Azodicarbonamide",
+    "ins": ["927a"],
+    "synonyms": ["azodicarbonamide", "ADA"],
+    "functional_class": ["flour treatment agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; permission status must be verified before any claim."],
+    "category_rules": [
+      {
+        "category": "7.2 bakery wares (status contested)",
+        "category_patterns": ["bread", "bakery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "verify"},
+        "conditions": ["Permission status must be verified before any claim; confirm gazette."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E941": {
+    "name": "Nitrogen",
+    "ins": ["941"],
+    "synonyms": ["nitrogen (packaging gas)"],
+    "functional_class": ["packaging gas"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories (packaging gas)",
+        "category_patterns": ["packaged foods", "beverages", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Packaging gas; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E950": {
+    "name": "Acesulfame potassium",
+    "ins": ["950"],
+    "synonyms": ["acesulfame potassium", "acesulfame K", "acesulfame-K"],
+    "functional_class": ["sweetener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; artificial sweetener, limits are category-specific; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 14.1.4 flavoured drinks; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "flavoured drinks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "category-specific"},
+        "conditions": ["Artificial sweetener; limits category-specific; confirm Appendix A Table 3."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E951": {
+    "name": "Aspartame",
+    "ins": ["951"],
+    "synonyms": ["aspartame"],
+    "functional_class": ["sweetener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; limits are category-specific; phenylketonuria warning labelling applies; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 14.1.4 flavoured drinks; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "flavoured drinks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "category-specific"},
+        "conditions": ["PKU warning labelling applies; confirm Appendix A Table 3."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E954": {
+    "name": "Saccharin",
+    "ins": ["954(i)", "954(ii)", "954(iii)", "954(iv)"],
+    "synonyms": ["saccharin", "sodium saccharin", "calcium saccharin"],
+    "functional_class": ["sweetener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; limits are category-specific; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 14.1.4 flavoured drinks; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "flavoured drinks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "category-specific"},
+        "conditions": ["Limits category-specific; confirm Appendix A Table 3."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E955": {
+    "name": "Sucralose",
+    "ins": ["955"],
+    "synonyms": ["sucralose", "trichlorogalactosucrose"],
+    "functional_class": ["sweetener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; limits are category-specific; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 14.1.4 flavoured drinks; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "flavoured drinks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "category-specific"},
+        "conditions": ["Limits category-specific; confirm Appendix A Table 3."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E960": {
+    "name": "Steviol glycosides",
+    "ins": ["960a", "960b"],
+    "synonyms": ["steviol glycosides", "stevia extract", "rebaudioside A", "stevioside"],
+    "functional_class": ["sweetener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Limits are expressed as steviol equivalents."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 14.1.4 flavoured drinks; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "flavoured drinks", "confectionery"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "expressed as steviol equivalents"},
+        "conditions": ["Limits as steviol equivalents; confirm Appendix A Table 3."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3, sweeteners (unverified)"}
+      }
+    ]
+  },
+  "E965": {
+    "name": "Maltitol",
+    "ins": ["965(i)", "965(ii)"],
+    "synonyms": ["maltitol", "maltitol syrup"],
+    "functional_class": ["sweetener", "bulking agent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Polyol labelling rules may apply; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3 (unverified)"}
+      }
+    ]
+  },
+  "E967": {
+    "name": "Xylitol",
+    "ins": ["967"],
+    "synonyms": ["xylitol"],
+    "functional_class": ["sweetener", "humectant"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "confectionery", "chewing gum"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Polyol labelling rules may apply; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3 (unverified)"}
+      }
+    ]
+  },
+  "E968": {
+    "name": "Erythritol",
+    "ins": ["968"],
+    "synonyms": ["erythritol"],
+    "functional_class": ["sweetener", "flavour enhancer"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "11.0 sweeteners; 5.0 confectionery",
+        "category_patterns": ["table-top sweeteners", "confectionery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Polyol labelling rules may apply; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 3 (unverified)"}
+      }
+    ]
+  },
+  "E1200": {
+    "name": "Polydextrose",
+    "ins": ["1200"],
+    "synonyms": ["polydextrose"],
+    "functional_class": ["bulking agent", "humectant", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "confectionery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E1404": {
+    "name": "Oxidised starch",
+    "ins": ["1404"],
+    "synonyms": ["oxidised starch", "oxidized starch"],
+    "functional_class": ["thickener", "emulsifier"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified.", "Plain 'modified starch' does not resolve to a specific INS."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Plain 'modified starch' does not resolve to specific INS; confirm Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E1422": {
+    "name": "Acetylated distarch adipate",
+    "ins": ["1422"],
+    "synonyms": ["acetylated distarch adipate"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E1442": {
+    "name": "Hydroxypropyl distarch phosphate",
+    "ins": ["1442"],
+    "synonyms": ["hydroxypropyl distarch phosphate"],
+    "functional_class": ["thickener", "stabiliser"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "snacks"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E1450": {
+    "name": "Starch sodium octenyl succinate",
+    "ins": ["1450"],
+    "synonyms": ["starch sodium octenyl succinate", "OSA starch"],
+    "functional_class": ["emulsifier", "thickener"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["bakery", "dairy", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  },
+  "E1520": {
+    "name": "Propylene glycol",
+    "ins": ["1520"],
+    "synonyms": ["propylene glycol", "1,2-propanediol"],
+    "functional_class": ["humectant", "carrier solvent"],
+    "permission": "unable_to_verify",
+    "references": ["COMP-A-v3"],
+    "notes": ["Identification only; not yet verified."],
+    "category_rules": [
+      {
+        "category": "1.0-16.0 broad food categories",
+        "category_patterns": ["confectionery", "bakery", "beverages"],
+        "status": "unable_to_verify",
+        "max_level": {"value": null, "unit": "mg/kg", "basis": "GMP where permitted"},
+        "conditions": ["Confirm category-specific limits in Appendix A."],
+        "reference": {"id": "COMP-A-v3", "section": "Table 1 (unverified)"}
+      }
+    ]
+  }
+  }
+}

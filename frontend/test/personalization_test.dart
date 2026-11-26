@@ -6,9 +6,14 @@ import 'package:frontend/widgets/personalized_insights.dart';
 
 void main() {
   testWidgets('invalid optional age is explained before continuing', (tester) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(const MaterialApp(home: PersonalHealthInputScreen()));
 
-    await tester.enterText(find.byType(TextField).first, '0');
+    await tester.enterText(find.byType(TextField).at(1), '0');
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue to Food Analysis'));
     await tester.pump();
 

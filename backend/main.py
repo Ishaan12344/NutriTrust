@@ -4,6 +4,7 @@ HTTP concerns stay here; the product-analysis workflow lives in
 ``analysis_pipeline`` so it can be reused independently of FastAPI.
 """
 
+import asyncio
 import logging
 from functools import partial
 from typing import Any
@@ -15,12 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from pydantic import BaseModel
 
-from analysis_pipeline import (
-    build_ocr_response,
-    build_barcode_analysis,
-    identity_conflicts as _identity_conflicts,
-    scoring_input_from_merged as _scoring_input_from_merged,
-)
+from analysis_pipeline import build_barcode_analysis, build_manual_analysis, build_ocr_response
 from app_config import get_settings
 from database import (
     authenticate_user,
@@ -93,6 +89,28 @@ class SummaryRequest(BaseModel):
     product_analysis: dict[str, Any] | None = None
     scoring: dict[str, Any] | None = None
     health_analysis: dict[str, Any] | None = None
+
+
+class ManualAssessmentRequest(BaseModel):
+    """Manually supplied product data; all nutrition values are per 100 g/100 ml."""
+
+    username: str | None = None
+    product_name: str | None = None
+    brand: str | None = None
+    category: str | None = None
+    ingredients_text: str | None = None
+    additives: list[str] = []
+    additive_concentrations: dict[str, dict[str, Any]] = {}
+    energy_kcal_per_100g: float | None = None
+    total_fat_per_100g: float | None = None
+    saturated_fat_per_100g: float | None = None
+    sugars_per_100g: float | None = None
+    fiber_per_100g: float | None = None
+    protein_per_100g: float | None = None
+    sodium_mg_per_100g: float | None = None
+    salt_g_per_100g: float | None = None
+    fruit_vegetable_percent: float | None = None
+    non_nutritive_sweeteners: bool | None = None
 
 
 app = FastAPI(
@@ -191,25 +209,68 @@ def fetch_user_scans(username: str):
 
 
 @app.post("/api/v1/ocr")
-async def scan_food_label(file: UploadFile = File(...), barcode: str | None = None, username: str | None = None):
-    """Validate an upload, run OCR, delegate analysis, and persist scan/product data."""
-    logger.info("OCR endpoint started: filename=%s content_type=%s barcode_supplied=%s user=%s", file.filename, file.content_type, bool(barcode), username)
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=415, detail="Upload a JPG, JPEG or PNG image.")
+async def scan_food_label(
+    file: UploadFile = File(...),
+    ingredients_file: UploadFile | None = File(None),
+    barcode: str | None = None,
+    username: str | None = None,
+):
+    """Validate an upload, run OCR, delegate analysis, and persist scan/product data.
+
+    ``file`` is the nutrition-label photo.  ``ingredients_file`` is an optional
+    second photo of the ingredients list, used to improve ingredient, allergen
+    and additive extraction.
+    """
+    logger.info(
+        "OCR endpoint started: filename=%s content_type=%s ingredients_supplied=%s barcode_supplied=%s user=%s",
+        file.filename, file.content_type, bool(ingredients_file), bool(barcode), username,
+    )
+
+    async def read_upload(upload: UploadFile) -> bytes:
+        if upload.content_type not in ALLOWED_TYPES:
+            raise HTTPException(status_code=415, detail="Upload a JPG, JPEG or PNG image.")
+        data = await upload.read(MAX_IMAGE_SIZE + 1)
+        if not data:
+            raise HTTPException(status_code=400, detail="The uploaded image is empty.")
+        if len(data) > MAX_IMAGE_SIZE:
+            raise HTTPException(status_code=413, detail="Image must be 10 MB or smaller.")
+        return data
+
+    async def ocr_optional_ingredients(image_bytes: bytes) -> dict[str, Any]:
+        # A failed optional ingredients photo must not fail the whole scan;
+        # the analysis continues from the nutrition photo with a visible warning.
+        try:
+            return await run_in_threadpool(
+                extract_text_from_image,
+                image_bytes,
+                ingredients_file.filename or "ingredients.jpg",
+                ingredients_file.content_type,
+            )
+        except Exception as exc:
+            logger.warning("Ingredients photo OCR failed; continuing without it: %s", exc)
+            return {"job_id": None, "status": "failed", "text": "", "error": str(exc)}
 
     try:
-        image_bytes = await file.read(MAX_IMAGE_SIZE + 1)
-        if not image_bytes:
-            raise HTTPException(status_code=400, detail="The uploaded image is empty.")
-        if len(image_bytes) > MAX_IMAGE_SIZE:
-            raise HTTPException(status_code=413, detail="Image must be 10 MB or smaller.")
+        image_bytes = await read_upload(file)
+        ingredients_bytes = await read_upload(ingredients_file) if ingredients_file else None
 
-        result = await run_in_threadpool(
+        nutrition_task = run_in_threadpool(
             extract_text_from_image, image_bytes, file.filename or "food-label.jpg", file.content_type
         )
+        if ingredients_file and ingredients_bytes is not None:
+            result, ingredients_result = await asyncio.gather(
+                nutrition_task, ocr_optional_ingredients(ingredients_bytes)
+            )
+        else:
+            result = await nutrition_task
+            ingredients_result = None
+
         logger.info("OCR completed: job_id=%s status=%s text_length=%s", result.get("job_id"), result.get("status"), len(result.get("text") or ""))
+        if ingredients_result:
+            logger.info("Ingredients OCR completed: job_id=%s status=%s text_length=%s", ingredients_result.get("job_id"), ingredients_result.get("status"), len(ingredients_result.get("text") or ""))
         resp = await build_ocr_response(
             ocr_result=result,
+            ingredients_ocr_result=ingredients_result,
             filename=file.filename,
             barcode=barcode,
             parse_label=parse_food_label,
@@ -244,6 +305,42 @@ async def scan_food_label(file: UploadFile = File(...), barcode: str | None = No
         raise HTTPException(status_code=500, detail="Unexpected server error during OCR.") from exc
     finally:
         await file.close()
+        if ingredients_file:
+            await ingredients_file.close()
+
+
+
+@app.post("/api/v1/manual-assessment")
+async def manual_assessment(req: ManualAssessmentRequest):
+    """Run the same assessment engines on manually entered product data."""
+    payload = req.model_dump() if hasattr(req, "model_dump") else req.dict()
+    logger.info(
+        "manual assessment started: name=%s category_supplied=%s user=%s",
+        payload.get("product_name"), bool(payload.get("category")), payload.get("username"),
+    )
+    product_analysis = build_manual_analysis(
+        payload=payload,
+        merge_product=merge_product_data,
+        analyze_health=analyze_product_health,
+        score=rate,
+        logger=logger,
+    )
+    resp = {
+        "success": True,
+        "product_analysis": product_analysis,
+        "nutri_score": product_analysis["nutri_score"],
+        "nova": product_analysis["nova"],
+        "additive_regulatory": product_analysis["additive_regulatory"],
+    }
+    try:
+        save_scan_and_product(
+            scan_type="manual",
+            analysis_response=resp,
+            username=payload.get("username"),
+        )
+    except Exception as exc:
+        logger.warning("Could not persist manual assessment: %s", exc)
+    return resp
 
 
 @app.get("/api/v1/open-food-facts/{barcode}")

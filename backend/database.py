@@ -208,7 +208,7 @@ def register_user(
         logger.info("User registered in MongoDB: %s", cleaned_username)
     except DuplicateKeyError as exc:
         raise ValueError("A user with this username or email already exists.") from exc
-    except (PyMongoError, Exception) as exc:
+    except Exception as exc:
         if users_collection is not None and not isinstance(exc, PyMongoError):
             raise
         logger.warning("MongoDB unavailable (%s), using local persistent storage for %s", exc, cleaned_username)
@@ -247,7 +247,7 @@ def authenticate_user(
     try:
         coll = users_collection if users_collection is not None else get_users_collection()
         user = coll.find_one({"username": cleaned_username})
-    except (PyMongoError, Exception) as exc:
+    except Exception as exc:
         if users_collection is not None and not isinstance(exc, PyMongoError):
             raise
         logger.warning("MongoDB unavailable (%s), falling back to local storage for %s", exc, cleaned_username)
@@ -289,7 +289,7 @@ def get_profile(
     try:
         coll = users_collection if users_collection is not None else get_users_collection()
         user = coll.find_one({"username": cleaned_username})
-    except (PyMongoError, Exception) as exc:
+    except Exception as exc:
         if users_collection is not None and not isinstance(exc, PyMongoError):
             raise
         logger.warning("MongoDB unavailable (%s), checking local storage for %s", exc, cleaned_username)
@@ -329,7 +329,7 @@ def update_profile(
         )
         if result.matched_count > 0:
             updated = True
-    except (PyMongoError, Exception) as exc:
+    except Exception as exc:
         if users_collection is not None and not isinstance(exc, PyMongoError):
             raise
         logger.warning("MongoDB unavailable (%s), updating local storage for %s", exc, cleaned_username)
@@ -446,7 +446,8 @@ def get_user_scans(username: str, limit: int = 50) -> list[dict[str, Any]]:
         try:
             with open(_LOCAL_SCANS_FILE, "r", encoding="utf-8") as f:
                 all_scans = json.load(f)
-            return [s for s in all_scans if s.get("username") == cleaned_username][-limit:]
+            matches = [s for s in all_scans if s.get("username") == cleaned_username]
+            return list(reversed(matches[-limit:]))
         except Exception:
             return []
     return []

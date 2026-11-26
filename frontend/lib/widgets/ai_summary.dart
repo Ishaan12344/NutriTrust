@@ -109,12 +109,12 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.accentTeal.withOpacity(0.08),
-            AppTheme.primaryGreen.withOpacity(0.06),
+            AppTheme.accentTeal.withValues(alpha: 0.08),
+            AppTheme.primaryGreen.withValues(alpha: 0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.accentTeal.withOpacity(0.18)),
+        border: Border.all(color: AppTheme.accentTeal.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,7 +124,7 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentTeal.withOpacity(0.14),
+                  color: AppTheme.accentTeal.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.auto_awesome_outlined,
