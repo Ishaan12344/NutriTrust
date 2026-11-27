@@ -12,6 +12,7 @@ import '../widgets/ai_summary.dart';
 import '../widgets/nutrient_bar.dart';
 import '../widgets/personalized_insights.dart';
 import '../widgets/score_ring.dart';
+import '../widgets/additive_card.dart';
 import 'barcode_scanner_screen.dart';
 import 'personal_health_input_screen.dart';
 import 'tracker_screen.dart';
@@ -959,7 +960,7 @@ class NutritionReport extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -1071,10 +1072,10 @@ class NutritionReport extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1450,8 +1451,14 @@ class NutritionReport extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1470,7 +1477,7 @@ class NutritionReport extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
                 ),
@@ -1661,12 +1668,10 @@ class NutritionReport extends StatelessWidget {
               ...additiveItems.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    _additiveLine(Map<String, dynamic>.from(item)),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textMedium,
-                    ),
+                  child: AdditiveCard(
+                    code: item['identified_as']?.toString() ?? '',
+                    name: item['name']?.toString().trim() ?? '',
+                    note: (() { final n = item['notes'] as List?; return (n != null && n.isNotEmpty) ? n.first.toString().trim() : ''; })(),
                   ),
                 ),
               )
@@ -1758,8 +1763,14 @@ class NutritionReport extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1769,7 +1780,7 @@ class NutritionReport extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -1778,7 +1789,7 @@ class NutritionReport extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
                 ),
