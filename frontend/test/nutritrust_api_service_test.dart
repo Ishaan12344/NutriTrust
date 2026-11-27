@@ -108,9 +108,18 @@ void main() {
       final body = jsonDecode(request.body) as Map;
       expect(body['username'], 'johndoe');
       expect(body['password'], 'secret');
-      return http.Response(jsonEncode({'success': true, 'message': 'User registered successfully'}), 200);
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'message': 'User registered successfully',
+        }),
+        200,
+      );
     });
-    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+    final service = NutriTrustApiService(
+      client: client,
+      baseUrl: 'https://api.example.test',
+    );
     final res = await service.register(username: 'johndoe', password: 'secret');
     expect(res['success'], isTrue);
     service.close();
@@ -127,13 +136,21 @@ void main() {
           'success': true,
           'user': {
             'username': 'johndoe',
-            'profile': {'name': 'John', 'age': 25, 'weight': 70.0, 'gender': 'Male'},
+            'profile': {
+              'name': 'John',
+              'age': 25,
+              'weight': 70.0,
+              'gender': 'Male',
+            },
           },
         }),
         200,
       );
     });
-    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+    final service = NutriTrustApiService(
+      client: client,
+      baseUrl: 'https://api.example.test',
+    );
     final res = await service.login(username: 'johndoe', password: 'secret');
     expect(res['success'], isTrue);
     expect((res['user'] as Map)['username'], 'johndoe');
@@ -159,19 +176,46 @@ void main() {
         200,
       );
     });
-    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+    final service = NutriTrustApiService(
+      client: client,
+      baseUrl: 'https://api.example.test',
+    );
 
     final res = await service.generateSummary(
       username: 'johndoe',
       response: {
         'product_analysis': {
           'product': {'name': 'Sample food'},
-          'open_food_facts': {'found': true, 'data': {'raw': 'payload'}},
+          'open_food_facts': {
+            'found': true,
+            'data': {'raw': 'payload'},
+          },
         },
       },
     );
 
     expect(res['summary'], 'A short summary.');
+    service.close();
+  });
+
+  test('deleting tracker item sends its id and username', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'DELETE');
+      expect(request.url.path, '/api/v1/tracker/items/item-123');
+      expect(request.url.queryParameters['username'], 'pushkar@example.com');
+      return http.Response(jsonEncode({'success': true}), 200);
+    });
+    final service = NutriTrustApiService(
+      client: client,
+      baseUrl: 'https://api.example.test',
+    );
+
+    final response = await service.deleteTrackerItem(
+      'item-123',
+      username: ' pushkar@example.com ',
+    );
+
+    expect(response['success'], isTrue);
     service.close();
   });
 }

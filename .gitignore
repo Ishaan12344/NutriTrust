@@ -43,6 +43,7 @@ backend/models/
 backend/data/users.json
 backend/data/scans.json
 backend/data/products.json
+backend/data/tracker_items.json
 
 
 backend/models

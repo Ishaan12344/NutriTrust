@@ -6,6 +6,7 @@ HTTP concerns stay here; the product-analysis workflow lives in
 
 import asyncio
 import logging
+from datetime import date as date_cls
 from functools import partial
 from typing import Any
 
@@ -33,6 +34,12 @@ from nutrition_parser import parse_food_label
 from open_food_facts_service import fetch_open_food_facts_product
 from sarvam_ocr import extract_text_from_image
 from scoring_service import rate
+from tracker_service import (
+    add_tracker_item,
+    delete_tracker_item,
+    get_tracker_snapshot,
+    update_tracker_item,
+)
 from summary_service import (
     generate_text as _generate_summary_text,
     summarize_analysis as _summarize_analysis,
@@ -91,6 +98,31 @@ class SummaryRequest(BaseModel):
     health_analysis: dict[str, Any] | None = None
 
 
+class TrackerItemRequest(BaseModel):
+    """A scanned item entering the tracker, with its validated nutrition values."""
+
+    username: str | None = None
+    date: str | None = None
+    name: str | None = None
+    brand: str | None = None
+    barcode: str | None = None
+    image_url: str | None = None
+    source: str = "scan"
+    manual_name: bool = False
+    nutrition: dict[str, float | None] = {}
+    nutrition_basis: str = "per_serving"
+    allergens: list[str] = []
+    additives: list[str] = []
+    nutri_grade: str | None = None
+    health_score: float | None = None
+
+
+class TrackerItemUpdateRequest(BaseModel):
+    username: str | None = None
+    status: str | None = None
+    name: str | None = None
+
+
 class ManualAssessmentRequest(BaseModel):
     """Manually supplied product data; all nutrition values are per 100 g/100 ml."""
 
@@ -122,7 +154,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -206,6 +238,48 @@ def save_user_profile(req: ProfileUpdateRequest):
 def fetch_user_scans(username: str):
     """Retrieve scan history for a user from MongoDB."""
     return {"success": True, "scans": get_user_scans(username=username)}
+
+
+@app.get("/api/v1/tracker")
+def fetch_tracker(
+    username: str | None = None,
+    period: str = "daily",
+    date: str | None = None,
+):
+    """Return tracked items, intake totals and suggestions for one period."""
+    try:
+        anchor = date_cls.fromisoformat(date) if date else date_cls.today()
+        return get_tracker_snapshot(username, period, anchor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/tracker/items")
+def create_tracker_item(req: TrackerItemRequest):
+    """Add a scanned item to the tracker; pending until the user marks it."""
+    return {"success": True, "item": add_tracker_item(req.model_dump())}
+
+
+@app.patch("/api/v1/tracker/items/{item_id}")
+def patch_tracker_item(item_id: str, req: TrackerItemUpdateRequest):
+    """Update an item's consumption status or user-supplied name."""
+    try:
+        item = update_tracker_item(item_id, req.username, req.model_dump(exclude_none=True))
+        return {"success": True, "item": item}
+    except ValueError as exc:
+        code = 404 if "not found" in str(exc).lower() else 400
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
+
+
+@app.delete("/api/v1/tracker/items/{item_id}")
+def remove_tracker_item(item_id: str, username: str | None = None):
+    """Remove an item the user did not eat."""
+    try:
+        delete_tracker_item(item_id, username)
+        return {"success": True}
+    except ValueError as exc:
+        code = 404 if "not found" in str(exc).lower() else 400
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/ocr")

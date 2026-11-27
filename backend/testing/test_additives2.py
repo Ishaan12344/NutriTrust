@@ -74,6 +74,6 @@ print(f"\n_extract_additives result: {result}")
 print(f"Expected: ['E211', 'E319', 'E322', 'E500', 'E503']")
 
 # Now try the actual function from the module
-from backend.nutrition_parser import _extract_additives as _extract_additives_real
+from nutrition_parser import _extract_additives as _extract_additives_real
 result_real = _extract_additives_real(text1)
 print(f"\nReal _extract_additives result: {result_real}")

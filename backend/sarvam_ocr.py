@@ -84,7 +84,7 @@ def _prepare_image(
 
 
 def _parse_json_text(raw: str) -> str:
-    """Extract text blocks from Sarvam's JSON digitise output."""
+    """Extract text blocks from Sarvam's JSON parse output."""
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
@@ -134,7 +134,7 @@ def extract_text_from_image(
 
     # Sarvam's SDK accepts a list of file tuples.
     try:
-        job = client.doc_ai.digitise(
+        job = client.doc_ai.parse(
             file=[
                 (
                     prepared_name,
@@ -183,6 +183,7 @@ def extract_text_from_image(
         response = requests.request(
             method=download.method,
             url=download.url,
+            headers=download.headers,
             timeout=download_timeout_seconds,
         )
         response.raise_for_status()
@@ -196,8 +197,7 @@ def extract_text_from_image(
             "Could not download the OCR output from Sarvam."
         ) from exc
 
-    # Digitise output is a ZIP containing the document text
-    # and per-page metadata.
+    # Parse output is a ZIP containing the document text and per-page metadata.
     try:
         with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
             candidates = [
