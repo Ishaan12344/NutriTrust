@@ -27,6 +27,11 @@ class NutriTrustApiService {
 
   String get baseUrl => _baseUrl;
 
+  static MediaType _imageMediaType(String contentType) =>
+      contentType == 'image/png'
+          ? MediaType('image', 'png')
+          : MediaType('image', 'jpeg');
+
   static String _resolveBaseUrl(String? configuredUrl) {
     final configured =
         (configuredUrl ??
@@ -56,6 +61,9 @@ class NutriTrustApiService {
     required Uint8List imageBytes,
     required String filename,
     required String contentType,
+    Uint8List? ingredientsImageBytes,
+    String? ingredientsFilename,
+    String? ingredientsContentType,
     String? barcode,
     String? username,
   }) async {
@@ -75,16 +83,25 @@ class NutriTrustApiService {
           'file',
           imageBytes,
           filename: filename,
-          contentType: contentType == 'image/png'
-              ? MediaType('image', 'png')
-              : MediaType('image', 'jpeg'),
+          contentType: _imageMediaType(contentType),
         ),
       );
+    if (ingredientsImageBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'ingredients_file',
+          ingredientsImageBytes,
+          filename: ingredientsFilename ?? 'ingredients.jpg',
+          contentType: _imageMediaType(ingredientsContentType ?? 'image/jpeg'),
+        ),
+      );
+    }
 
     try {
       developer.log(
         'label request start: ${request.method} ${request.url} '
-        'file=$filename type=$contentType bytes=${imageBytes.length}',
+        'file=$filename type=$contentType bytes=${imageBytes.length} '
+        'ingredients_bytes=${ingredientsImageBytes?.length ?? 0}',
         name: 'nutritrust.api',
       );
       final response = await http.Response.fromStream(
@@ -135,7 +152,7 @@ class NutriTrustApiService {
           .timeout(const Duration(seconds: 20));
       developer.log('barcode response: ${response.statusCode} bytes=${response.bodyBytes.length}', name: 'nutritrust.api');
       final body = _decodeResponse(response);
-      if (body['success'] != true || body['data'] is! Map) {
+      if (body['success'] != true) {
         throw const NutriTrustApiException(
           'The backend response is missing product data. Please retry.',
         );
@@ -144,6 +161,11 @@ class NutriTrustApiService {
       // Keep the adapter below for a rolling upgrade with an older backend.
       if (body['product_analysis'] is Map) {
         return body;
+      }
+      if (body['data'] is! Map) {
+        throw const NutriTrustApiException(
+          'The backend response is missing product data. Please retry.',
+        );
       }
       return _barcodeResponse(body, Map<String, dynamic>.from(body['data'] as Map));
     } on TimeoutException catch (error, stackTrace) {
@@ -260,18 +282,63 @@ class NutriTrustApiService {
           'nutrition_per_serving': servingNutrition.isEmpty ? null : 'open_food_facts',
         },
         'open_food_facts': data,
-        'health_analysis': {
-          'analysis_status': 'insufficient_data',
-          'overall_score_status': 'not_calculated',
-          'findings': <dynamic>[],
-          'warnings': <dynamic>[],
-          'needs_review': true,
-        },
         'scoring': body['scoring'],
         'warnings': data['found'] == false ? [data['message'] ?? 'Product not found.'] : <dynamic>[],
-        'missing_data_warnings': <dynamic>[],
       },
     };
+  }
+
+  /// Requests a natural-language summary of a scan from the backend model.
+  ///
+  /// [response] is the payload returned by [analyzeLabel] or [analyzeBarcode].
+  /// The backend looks the health profile up from [username] and returns
+  /// `{"success", "status", "summary", ...}`; it never fails because of the
+  /// model, so callers should read `summary` and treat an empty value as
+  /// "unavailable".
+  Future<Map<String, dynamic>> generateSummary({
+    required Map<String, dynamic> response,
+    String? username,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/summary');
+    final payload = <String, dynamic>{
+      if (username != null && username.trim().isNotEmpty)
+        'username': username.trim(),
+      'product_analysis': _summaryAnalysis(response),
+    };
+    try {
+      developer.log('summary request start: POST $uri', name: 'nutritrust.api');
+      final result = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 180));
+      final body = _decodeResponse(result);
+      developer.log('summary response: status=${body['status']}', name: 'nutritrust.api');
+      return body;
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'The summary took too long to generate. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend for the summary.',
+      );
+    }
+  }
+
+  /// Builds the analysis the summary endpoint needs, dropping the bulky raw
+  /// Open Food Facts payload so the request stays small.
+  Map<String, dynamic> _summaryAnalysis(Map<String, dynamic> response) {
+    final analysis = response['product_analysis'] is Map
+        ? Map<String, dynamic>.from(response['product_analysis'] as Map)
+        : <String, dynamic>{};
+    final off = analysis['open_food_facts'];
+    if (off is Map) {
+      analysis['open_food_facts'] = Map<String, dynamic>.from(off)..remove('data');
+    }
+    return analysis;
   }
 
   Future<Map<String, dynamic>> register({

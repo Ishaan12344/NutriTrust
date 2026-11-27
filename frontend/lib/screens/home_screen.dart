@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/health_profile.dart';
 import '../services/nutritrust_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_summary.dart';
 import '../widgets/nutrient_bar.dart';
 import '../widgets/personalized_insights.dart';
 import '../widgets/score_ring.dart';
@@ -28,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final NutriTrustApiService _api = NutriTrustApiService();
   XFile? _selectedImage;
   Uint8List? _imageBytes;
+  XFile? _ingredientsImage;
+  Uint8List? _ingredientsBytes;
   Map<String, dynamic>? _analysis;
   bool _isLoading = false;
   String? _error;
@@ -38,17 +41,24 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(
+    ImageSource source, {
+    bool ingredients = false,
+  }) async {
     try {
       final image = await _picker.pickImage(source: source, imageQuality: 90);
-      developer.log('image picker returned: ${image?.name ?? 'cancelled'}',
-          name: 'nutritrust.ui');
+      developer.log(
+        'image picker returned: ${image?.name ?? 'cancelled'} '
+        'target=${ingredients ? 'ingredients' : 'nutrition'}',
+        name: 'nutritrust.ui',
+      );
       if (image == null || !mounted) return;
 
       final bytes = await image.readAsBytes();
       developer.log(
-          'image selected: name=${image.name} size=${bytes.length} type=${image.mimeType ?? 'unknown'}',
-          name: 'nutritrust.ui');
+        'image selected: name=${image.name} size=${bytes.length} type=${image.mimeType ?? 'unknown'}',
+        name: 'nutritrust.ui',
+      );
       if (bytes.length > 10 * 1024 * 1024) {
         setState(() => _error = 'Choose an image that is 10 MB or smaller.');
         return;
@@ -59,36 +69,80 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       setState(() {
-        _selectedImage = image;
-        _imageBytes = bytes;
+        if (ingredients) {
+          _ingredientsImage = image;
+          _ingredientsBytes = bytes;
+        } else {
+          _selectedImage = image;
+          _imageBytes = bytes;
+          _ingredientsImage = null;
+          _ingredientsBytes = null;
+        }
         _analysis = null;
         _error = null;
       });
-      await _analyzeImage();
     } catch (e, stackTrace) {
-      developer.log('image pick error',
-          name: 'nutritrust.ui', error: e, stackTrace: stackTrace);
+      developer.log(
+        'image pick error',
+        name: 'nutritrust.ui',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) setState(() => _error = 'Unable to select that image.');
     }
   }
+
+  Future<void> _pickIngredients() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: const Text('Take ingredients photo'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Choose ingredients image'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null) await _pickImage(source, ingredients: true);
+  }
+
+  String _contentTypeFor(String? name) =>
+      (name ?? '').toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
   Future<void> _analyzeImage() async {
     final image = _selectedImage;
     final bytes = _imageBytes;
     if (image == null || bytes == null || _isLoading) return;
-    developer.log('label callback triggered; api=${_api.baseUrl}',
-        name: 'nutritrust.ui');
+    developer.log(
+      'label callback triggered; api=${_api.baseUrl}',
+      name: 'nutritrust.ui',
+    );
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final name = image.name;
+      final ingredientsName = _ingredientsImage?.name;
       final response = await _api.analyzeLabel(
         imageBytes: bytes,
         filename: name,
-        contentType:
-            name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+        contentType: _contentTypeFor(name),
+        ingredientsImageBytes: _ingredientsBytes,
+        ingredientsFilename: ingredientsName,
+        ingredientsContentType: ingredientsName == null
+            ? null
+            : _contentTypeFor(ingredientsName),
         username: widget.username,
       );
       if (mounted) setState(() => _analysis = response);
@@ -96,11 +150,16 @@ class _HomeScreenState extends State<HomeScreen> {
       developer.log('label UI error', name: 'nutritrust.ui', error: error);
       if (mounted) setState(() => _error = error.message);
     } catch (error, stackTrace) {
-      developer.log('label unexpected UI error',
-          name: 'nutritrust.ui', error: error, stackTrace: stackTrace);
+      developer.log(
+        'label unexpected UI error',
+        name: 'nutritrust.ui',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(
-            () => _error = 'The label could not be analyzed. Please retry.');
+          () => _error = 'The label could not be analyzed. Please retry.',
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -108,30 +167,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _scanBarcode() async {
-    developer.log('barcode button triggered; api=${_api.baseUrl}',
-        name: 'nutritrust.ui');
+    developer.log(
+      'barcode button triggered; api=${_api.baseUrl}',
+      name: 'nutritrust.ui',
+    );
     if (mounted) {
       setState(() {
         _selectedImage = null;
         _imageBytes = null;
+        _ingredientsImage = null;
+        _ingredientsBytes = null;
         _error = null;
       });
     }
     String? barcode;
     try {
       barcode = await Navigator.of(context).push<String>(
-          MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+        MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+      );
     } catch (error, stackTrace) {
-      developer.log('scanner navigation failure',
-          name: 'nutritrust.ui', error: error, stackTrace: stackTrace);
+      developer.log(
+        'scanner navigation failure',
+        name: 'nutritrust.ui',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
-        setState(() =>
-            _error = 'The barcode scanner could not start. Please retry.');
+        setState(
+          () => _error = 'The barcode scanner could not start. Please retry.',
+        );
       }
       return;
     }
-    developer.log('scanner returned barcode=${barcode ?? 'none'}',
-        name: 'nutritrust.ui');
+    developer.log(
+      'scanner returned barcode=${barcode ?? 'none'}',
+      name: 'nutritrust.ui',
+    );
     if (barcode == null || !mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
@@ -141,15 +212,21 @@ class _HomeScreenState extends State<HomeScreen> {
       _error = null;
     });
     try {
-      final response =
-          await _api.analyzeBarcode(barcode, username: widget.username);
+      final response = await _api.analyzeBarcode(
+        barcode,
+        username: widget.username,
+      );
       if (mounted) setState(() => _analysis = response);
     } on NutriTrustApiException catch (error) {
       developer.log('barcode UI error', name: 'nutritrust.ui', error: error);
       if (mounted) setState(() => _error = error.message);
     } catch (error, stackTrace) {
-      developer.log('barcode unexpected UI error',
-          name: 'nutritrust.ui', error: error, stackTrace: stackTrace);
+      developer.log(
+        'barcode unexpected UI error',
+        name: 'nutritrust.ui',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _error = 'The barcode lookup failed. Please retry.');
       }
@@ -178,22 +255,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.tune_rounded,
-                      color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
                     builder: (_) => PersonalHealthInputScreen(
-                        initialProfile: widget.profile,
-                        username: widget.username))),
+                      initialProfile: widget.profile,
+                      username: widget.username,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                ),
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
@@ -205,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -223,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Scan a barcode or upload a food label',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -278,8 +364,59 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.memory(_imageBytes!,
-                        height: 220, fit: BoxFit.contain),
+                    child: Image.memory(
+                      _imageBytes!,
+                      height: 220,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  if (_ingredientsBytes != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Text(
+                          'Ingredients list',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textMedium,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => setState(() {
+                                  _ingredientsImage = null;
+                                  _ingredientsBytes = null;
+                                  _analysis = null;
+                                }),
+                          child: const Text('Remove'),
+                        ),
+                      ],
+                    ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.memory(
+                        _ingredientsBytes!,
+                        height: 140,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _pickIngredients,
+                    icon: Icon(
+                      _ingredientsBytes == null
+                          ? Icons.add_photo_alternate_outlined
+                          : Icons.swap_horiz_rounded,
+                    ),
+                    label: Text(
+                      _ingredientsBytes == null
+                          ? 'Add ingredients photo (optional)'
+                          : 'Replace ingredients photo',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -302,19 +439,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: CircularProgressIndicator(
                             strokeWidth: 3,
                             color: AppTheme.primaryGreen,
-                            backgroundColor: AppTheme.primaryGreen.withOpacity(0.15),
+                            backgroundColor: AppTheme.primaryGreen.withValues(
+                              alpha: 0.15,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text('Analyzing…',
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: AppTheme.textMedium)),
+                        const Text(
+                          'Analyzing…',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textMedium,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        const Text('This may take a moment',
-                            style: TextStyle(
-                                fontSize: 13, color: AppTheme.textLight)),
+                        const Text(
+                          'This may take a moment',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textLight,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -329,21 +475,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.error_outline,
-                            color: Colors.red.shade700, size: 22),
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.red.shade700,
+                          size: 22,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(_error!,
-                              style: TextStyle(
-                                  color: Colors.red.shade900, fontSize: 14)),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Colors.red.shade900,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
-                    onPressed:
-                        _imageBytes == null ? _scanBarcode : _analyzeImage,
+                    onPressed: _imageBytes == null
+                        ? _scanBarcode
+                        : _analyzeImage,
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Retry'),
                   ),
@@ -351,7 +505,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (_analysis != null) ...[
                   const SizedBox(height: 24),
                   NutritionReport(
-                      response: _analysis!, profile: widget.profile),
+                    response: _analysis!,
+                    api: _api,
+                    profile: widget.profile,
+                    username: widget.username,
+                  ),
                 ],
                 const SizedBox(height: 40),
               ]),
@@ -389,34 +547,40 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: EdgeInsets.all(compact ? 10 : 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon,
-                    color: Colors.white, size: compact ? 24 : 28),
+                child: Icon(icon, color: Colors.white, size: compact ? 24 : 28),
               ),
               SizedBox(width: compact ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: TextStyle(
-                          fontSize: compact ? 15 : 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        )),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: compact ? 15 : 17,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                          fontSize: compact ? 12 : 13,
-                          color: Colors.white.withOpacity(0.7),
-                        )),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: compact ? 12 : 13,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white.withOpacity(0.5), size: 18),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white.withValues(alpha: 0.5),
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -430,10 +594,18 @@ class _HomeScreenState extends State<HomeScreen> {
 // ---------------------------------------------------------------------------
 
 class NutritionReport extends StatelessWidget {
-  const NutritionReport({super.key, required this.response, this.profile});
+  const NutritionReport({
+    super.key,
+    required this.response,
+    required this.api,
+    this.profile,
+    this.username,
+  });
 
   final Map<String, dynamic> response;
+  final NutriTrustApiService api;
   final HealthProfile? profile;
+  final String? username;
 
   Map<String, dynamic> _map(Object? v) =>
       v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
@@ -466,65 +638,167 @@ class NutritionReport extends StatelessWidget {
     final ingredients = _map(analysis['ingredients']);
     final allergens = _map(analysis['allergens']);
     final classification = _map(analysis['classification']);
-    final health = _map(analysis['health_analysis']);
+    final nutriEngine = _map(
+      analysis['nutri_score'] ?? response['nutri_score'],
+    );
+    final novaEngine = _map(analysis['nova'] ?? response['nova']);
+    final additiveEngine = _map(
+      analysis['additive_regulatory'] ?? response['additive_regulatory'],
+    );
     final scoring = _map(analysis['scoring'] ?? response['scoring']);
-    final findings = _list(health['findings']).whereType<Map>();
-    final warnings = [
-      ..._list(analysis['warnings']),
-      ..._list(analysis['missing_data_warnings'])
-    ];
-    final requestedBarcode = _map(analysis['identification'])['requested_barcode'];
+    final warnings = _visibleWarnings(_list(analysis['warnings']));
+    final requestedBarcode = _map(
+      analysis['identification'],
+    )['requested_barcode'];
+    final hasAssessmentData =
+        scoring.isNotEmpty ||
+        nutriEngine.isNotEmpty ||
+        novaEngine.isNotEmpty ||
+        additiveEngine.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildProductHeader(context, product, requestedBarcode, normServing, analysis),
+        _buildProductHeader(
+          context,
+          product,
+          requestedBarcode,
+          normServing,
+          analysis,
+        ),
+        const SizedBox(height: 16),
+        AiSummaryCard(api: api, response: response, username: username),
         const SizedBox(height: 16),
         if (profile?.hasInformation == true) ...[
           PersonalizedInsights(profile: profile!, analysis: analysis),
           const SizedBox(height: 16),
         ],
-        if (scoring.isNotEmpty)
-          _buildScoreOverview(context, scoring, classification),
+        if (hasAssessmentData)
+          _buildScoreOverview(context, scoring, classification, nutriEngine),
         _buildNutrientSection(context, 'Energy', Icons.bolt_rounded, [
-          _nutrientBar('Calories', serving['energy_kcal'], per100['energy_kcal'],
-              dv['energy_kcal'], false),
-        ]),
-        _buildNutrientSection(context, 'Macronutrients', Icons.restaurant_rounded, [
-          _nutrientBar('Total fat', serving['total_fat'], per100['total_fat'],
-              dv['total_fat'], true),
-          _nutrientBar('Saturated fat', serving['saturated_fat'],
-              per100['saturated_fat'], dv['saturated_fat'], true),
-          _nutrientBar('Trans fat', serving['trans_fat'], per100['trans_fat'],
-              dv['trans_fat'], true),
-          _nutrientBar('Carbohydrates', serving['total_carbohydrate'],
-              per100['total_carbohydrate'], dv['total_carbohydrate'], false),
           _nutrientBar(
-              'Fiber', serving['fiber'], per100['fiber'], dv['fiber'], false),
-          _nutrientBar('Total sugars', serving['sugar'], per100['sugar'],
-              dv['total_sugars'], true),
-          _nutrientBar('Added sugars', serving['added_sugar'],
-              per100['added_sugar'], dv['added_sugars'], true),
-          _nutrientBar('Protein', serving['protein'], per100['protein'],
-              dv['protein'], false),
+            'Calories',
+            serving['energy_kcal'],
+            per100['energy_kcal'],
+            dv['energy_kcal'],
+            false,
+          ),
         ]),
-        _buildNutrientSection(context, 'Other Nutrients', Icons.science_rounded, [
-          _nutrientBar('Sodium', serving['sodium'], per100['sodium'],
-              dv['sodium'], true),
-          _nutrientBar('Cholesterol', serving['cholesterol'],
-              per100['cholesterol'], dv['cholesterol'], true),
-          _nutrientBar('Calcium', serving['calcium'], per100['calcium'],
-              dv['calcium'], false),
-          _nutrientBar(
-              'Iron', serving['iron'], per100['iron'], dv['iron'], false),
-          _nutrientBar('Potassium', serving['potassium'], per100['potassium'],
-              dv['potassium'], false),
-        ]),
-        if (scoring.isNotEmpty)
-          _buildAssessments(context, scoring, classification),
+        _buildNutrientSection(
+          context,
+          'Macronutrients',
+          Icons.restaurant_rounded,
+          [
+            _nutrientBar(
+              'Total fat',
+              serving['total_fat'],
+              per100['total_fat'],
+              dv['total_fat'],
+              true,
+            ),
+            _nutrientBar(
+              'Saturated fat',
+              serving['saturated_fat'],
+              per100['saturated_fat'],
+              dv['saturated_fat'],
+              true,
+            ),
+            _nutrientBar(
+              'Trans fat',
+              serving['trans_fat'],
+              per100['trans_fat'],
+              dv['trans_fat'],
+              true,
+            ),
+            _nutrientBar(
+              'Carbohydrates',
+              serving['total_carbohydrate'],
+              per100['total_carbohydrate'],
+              dv['total_carbohydrate'],
+              false,
+            ),
+            _nutrientBar(
+              'Fiber',
+              serving['fiber'],
+              per100['fiber'],
+              dv['fiber'],
+              false,
+            ),
+            _nutrientBar(
+              'Total sugars',
+              serving['sugar'],
+              per100['sugar'],
+              dv['total_sugars'],
+              true,
+            ),
+            _nutrientBar(
+              'Added sugars',
+              serving['added_sugar'],
+              per100['added_sugar'],
+              dv['added_sugars'],
+              true,
+            ),
+            _nutrientBar(
+              'Protein',
+              serving['protein'],
+              per100['protein'],
+              dv['protein'],
+              false,
+            ),
+          ],
+        ),
+        _buildNutrientSection(
+          context,
+          'Other Nutrients',
+          Icons.science_rounded,
+          [
+            _nutrientBar(
+              'Sodium',
+              serving['sodium'],
+              per100['sodium'],
+              dv['sodium'],
+              true,
+            ),
+            _nutrientBar(
+              'Cholesterol',
+              serving['cholesterol'],
+              per100['cholesterol'],
+              dv['cholesterol'],
+              true,
+            ),
+            _nutrientBar(
+              'Calcium',
+              serving['calcium'],
+              per100['calcium'],
+              dv['calcium'],
+              false,
+            ),
+            _nutrientBar(
+              'Iron',
+              serving['iron'],
+              per100['iron'],
+              dv['iron'],
+              false,
+            ),
+            _nutrientBar(
+              'Potassium',
+              serving['potassium'],
+              per100['potassium'],
+              dv['potassium'],
+              false,
+            ),
+          ],
+        ),
+        if (hasAssessmentData)
+          _buildAssessments(
+            context,
+            scoring,
+            classification,
+            nutriEngine,
+            novaEngine,
+            additiveEngine,
+          ),
         _buildIngredientsCard(context, ingredients, allergens),
-        if (findings.isNotEmpty)
-          _buildFindingsCard(context, health, findings),
         if (warnings.isNotEmpty) _buildWarningsCard(context, warnings),
       ],
     );
@@ -547,7 +821,7 @@ class NutritionReport extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -565,9 +839,12 @@ class NutritionReport extends StatelessWidget {
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Center(
-                  child: Icon(Icons.image_not_supported_outlined,
-                      size: 48, color: Colors.grey.shade400),
+                errorBuilder: (_, _, _) => Center(
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 48,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
               ),
             ),
@@ -591,30 +868,18 @@ class NutritionReport extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     if (_text(product['brands']) != 'Not available')
-                      _infoPill(Icons.storefront_outlined, product['brands'].toString()),
-                    if (_text(product['barcode'] ?? requestedBarcode) != 'Not available')
-                      _infoPill(Icons.qr_code, (product['barcode'] ?? requestedBarcode).toString()),
-                    if (_text(product['categories']) != 'Not available')
-                      _infoPill(Icons.category_outlined, product['categories'].toString()),
-                    if (_text(normServing['text']) != 'Not available')
-                      _infoPill(Icons.straighten, normServing['text'].toString()),
+                      _infoPill(
+                        Icons.storefront_outlined,
+                        product['brands'].toString(),
+                      ),
+                    if (_text(product['barcode'] ?? requestedBarcode) !=
+                        'Not available')
+                      _infoPill(
+                        Icons.qr_code,
+                        (product['barcode'] ?? requestedBarcode).toString(),
+                      ),
                   ],
                 ),
-                if (_text(_map(analysis['data_quality'])['status']) != 'Not available') ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.verified_outlined,
-                          size: 14, color: Colors.grey.shade500),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Data quality: ${_map(analysis['data_quality'])['status']}',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
-                      ),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),
@@ -636,9 +901,11 @@ class NutritionReport extends StatelessWidget {
           Icon(icon, size: 14, color: AppTheme.textMedium),
           const SizedBox(width: 4),
           Flexible(
-            child: Text(text,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textMedium),
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMedium),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -650,12 +917,16 @@ class NutritionReport extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> scoring,
     Map<String, dynamic> classification,
+    Map<String, dynamic> nutriEngine,
   ) {
     final scores = _map(scoring['scores']);
     final overall = scores['overall'];
     final grade = _text(scores['grade']);
     final gradeLabel = _text(scores['grade_label']);
-    final nutriScore = classification['nutriscore_grade']?.toString();
+    final engineGrade = nutriEngine['grade']?.toString();
+    final nutriScore = (engineGrade != null && engineGrade.isNotEmpty)
+        ? engineGrade
+        : classification['nutriscore_grade']?.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -665,7 +936,7 @@ class NutritionReport extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -693,11 +964,14 @@ class NutritionReport extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.grey.shade300, width: 2),
                   ),
-                  child: const Text('N/A',
-                      style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textLight)),
+                  child: const Text(
+                    'N/A',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textLight,
+                    ),
+                  ),
                 ),
               const SizedBox(width: 20),
               Expanded(
@@ -708,9 +982,13 @@ class NutritionReport extends StatelessWidget {
                     if (grade != 'Not available')
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppTheme.gradeColor(grade).withOpacity(0.12),
+                          color: AppTheme.gradeColor(
+                            grade,
+                          ).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -724,15 +1002,38 @@ class NutritionReport extends StatelessWidget {
                       ),
                     const SizedBox(height: 10),
                     if (nutriScore != null) _buildNutriScoreVisual(nutriScore),
+                    if (nutriEngine.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        _nutriScoreStatus(nutriEngine),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textMedium,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     Text(
-                      _text(scoring['explanation']),
+                      'Why this rating',
                       style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: AppTheme.textLight),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ..._ratingReasons(scoring).map(
+                      (reason) => Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          '• $reason',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            height: 1.35,
+                            color: AppTheme.textLight,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -752,18 +1053,23 @@ class NutritionReport extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: labels.map((l) {
         final isActive = l == active;
-        final color = AppTheme.nutriScoreColors[l.toLowerCase()] ??
-            AppTheme.textLight;
+        final color =
+            AppTheme.nutriScoreColors[l.toLowerCase()] ?? AppTheme.textLight;
         return Container(
           margin: const EdgeInsets.only(right: 3),
           width: isActive ? 30 : 24,
           height: isActive ? 30 : 24,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive ? color : color.withOpacity(0.15),
+            color: isActive ? color : color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(6),
             boxShadow: isActive
-                ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6)]
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                    ),
+                  ]
                 : null,
           ),
           child: Text(
@@ -779,13 +1085,224 @@ class NutritionReport extends StatelessWidget {
     );
   }
 
+  String _nutriScoreStatus(Map<String, dynamic> engine) {
+    if (engine['status'] == 'engine_error') {
+      return _text(engine['warning']);
+    }
+    if (engine['grade'] != null) {
+      return 'Calculated grade ${engine['grade']}; score ${_number(engine['score'])}'
+          ' (${_text(engine['status'])})';
+    }
+    final missing = _list(engine['missing_inputs']);
+    if (missing.isNotEmpty) {
+      return 'Not calculated: missing ${missing.join(', ')}.';
+    }
+    final warnings = _list(engine['warnings'])
+        .map((w) => w?.toString().trim() ?? '')
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (warnings.isNotEmpty) return 'Not calculated: ${warnings.first}';
+    return _text(engine['status']);
+  }
+
+  String _additiveDetails(
+    Map<String, dynamic> engine,
+    Map<String, dynamic> legacy,
+  ) {
+    if (engine.isEmpty) return _text(legacy['details']);
+    if (engine['status'] == 'engine_error') return _text(engine['warning']);
+    final warnings = _list(engine['warnings'])
+        .map((w) => w?.toString().trim() ?? '')
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (warnings.isNotEmpty) return warnings.first;
+    return _text(engine['important_notice']);
+  }
+
+  String _additiveLine(Map<String, dynamic> item) {
+    final code = _text(item['identified_as']);
+    final name = item['name']?.toString().trim() ?? '';
+    final title = name.isEmpty ? 'Name not listed ($code)' : '$name ($code)';
+    final permission = _additivePermissionLabel(item['permission_status']);
+    final compliance = item['compliance_status']?.toString();
+    final functions = _list(item['functional_class'])
+        .map((value) => value?.toString().trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .join(', ');
+    final notes = _list(item['notes'])
+        .map((value) => value?.toString().trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList();
+    final purpose = item['purpose']?.toString().trim() ?? '';
+    final referenceRisk = item['reference_risk']?.toString().trim() ?? '';
+    final maxLevel = _map(item['max_level']);
+    final lines = <String>[title];
+    for (final note in notes) {
+      lines.add('Note: $note');
+    }
+    lines.add(
+      'Function class: ${functions.isEmpty ? 'Not listed in local additive data' : functions}',
+    );
+    if (purpose.isNotEmpty) {
+      lines.add(
+        functions.isEmpty
+            ? 'Purpose / note: $purpose'
+            : 'Reference note: $purpose',
+      );
+    }
+    if (referenceRisk.isNotEmpty) {
+      lines.add('Legacy reference-list rating: $referenceRisk');
+    }
+
+    final ins = _list(item['ins'])
+        .map((value) => value?.toString().trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .join(', ');
+    if (ins.isNotEmpty) lines.add('INS: $ins');
+
+    const verifiedPermissionStatuses = {
+      'permitted_gmp',
+      'permitted_with_conditions',
+      'restricted_or_not_permitted',
+    };
+    if (verifiedPermissionStatuses.contains(item['permission_status'])) {
+      lines.add('Legal status: $permission');
+    }
+    if (compliance == 'compliant') {
+      lines.add('Label amount check: within the recorded limit');
+    } else if (compliance == 'non_compliant') {
+      lines.add('Label amount check: exceeds the recorded limit');
+    }
+
+    final applicableRule = item['applicable_rule']?.toString().trim() ?? '';
+    if (applicableRule.isNotEmpty) {
+      lines.add('Applicable rule: $applicableRule');
+    }
+    if (maxLevel.isNotEmpty) {
+      lines.add(
+        'Maximum level: ${_number(maxLevel['value'])} ${_text(maxLevel['unit'])} '
+        '(${_text(maxLevel['basis'])})',
+      );
+    }
+    final conditions = _list(item['conditions'])
+        .map((value) => value?.toString().trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList();
+    if (conditions.isNotEmpty) {
+      lines.add('Conditions: ${conditions.join('; ')}');
+    }
+
+    for (final rawNote in _list(item['regulatory_notes'])) {
+      if (rawNote is! Map) continue;
+      final note = Map<String, dynamic>.from(rawNote);
+      final details = <String>[];
+      final category = note['category'] ?? note['fcs'];
+      if (category != null && category.toString().trim().isNotEmpty) {
+        details.add('Food category: $category');
+      }
+      final recordedMaximum = note['max_level'];
+      if (recordedMaximum != null) {
+        details.add('Recorded maximum: $recordedMaximum');
+      }
+      final noteText = note['note']?.toString().trim() ?? '';
+      if (noteText.isNotEmpty) details.add(noteText);
+      final ruleConditions = _list(note['conditions'])
+          .map((value) => value?.toString().trim() ?? '')
+          .where((value) => value.isNotEmpty)
+          .toList();
+      if (ruleConditions.isNotEmpty) {
+        details.add('Conditions: ${ruleConditions.join('; ')}');
+      }
+      final ruleReference = _map(note['reference']);
+      final referenceId = ruleReference['id']?.toString().trim() ?? '';
+      final referenceSection =
+          ruleReference['section']?.toString().trim() ?? '';
+      if (referenceId.isNotEmpty) {
+        details.add(
+          'Reference: $referenceId${referenceSection.isEmpty ? '' : ', $referenceSection'}',
+        );
+      }
+      if (details.isNotEmpty) {
+        lines.add('Regulatory reference note: ${details.join('; ')}');
+      }
+    }
+
+    final reference = _map(item['reference']);
+    final document = reference['document']?.toString().trim() ?? '';
+    final section = reference['section']?.toString().trim() ?? '';
+    if (document.isNotEmpty) {
+      lines.add(
+        'Regulatory source: $document${section.isEmpty ? '' : ', $section'}',
+      );
+    }
+    for (final limitation in _list(item['limitations'])) {
+      final text = limitation?.toString().trim() ?? '';
+      if (text.isNotEmpty && !notes.contains(text)) {
+        lines.add('Assessment note: $text');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  String _additivePermissionLabel(Object? status) {
+    switch (status?.toString()) {
+      case 'permitted_gmp':
+        return 'permitted under GMP';
+      case 'permitted_with_conditions':
+        return 'permitted with category conditions';
+      case 'restricted_or_not_permitted':
+        return 'restricted or not permitted';
+      case 'unable_to_verify':
+        return '';
+      default:
+        return _text(status);
+    }
+  }
+
+  List<String> _ratingReasons(Map<String, dynamic> scoring) {
+    final reasons = _list(scoring['rating_reasons'])
+        .map((value) => value?.toString().trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .take(2)
+        .toList();
+    if (reasons.isNotEmpty) return reasons;
+    final explanation = scoring['explanation']?.toString().trim() ?? '';
+    return explanation.isEmpty
+        ? ['Based on the available product information.']
+        : [explanation];
+  }
+
+  List<Object?> _visibleWarnings(List<Object?> warnings) {
+    const importantSignals = [
+      'could not be completed',
+      'identity conflicts',
+      'could not be reached',
+      'timed out',
+      'no readable text',
+      'not permitted',
+      'non-compliant',
+    ];
+    final visible = <Object?>[];
+    for (final warning in warnings) {
+      final text = warning?.toString().trim() ?? '';
+      if (text.isEmpty || !importantSignals.any(text.toLowerCase().contains))
+        continue;
+      if (!visible.any((item) => item.toString() == text)) visible.add(text);
+      if (visible.length == 2) break;
+    }
+    return visible;
+  }
+
   // --- Nutrient section ---
   Widget _buildNutrientSection(
-      BuildContext context, String title, IconData icon, List<Widget> children) {
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) {
     final visible = children.whereType<NutrientBar>().where((c) {
       return c.servingValue.isNotEmpty || c.per100Value.isNotEmpty;
     }).toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -803,28 +1320,57 @@ class NutritionReport extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: AppTheme.primaryGreen, size: 18),
               ),
               const SizedBox(width: 10),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textDark)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          ...visible,
+          if (visible.isNotEmpty)
+            ...visible
+          else
+            // Keep the section visible when nothing was found for it, so a
+            // barcode with incomplete data still shows every part of the
+            // report instead of silently dropping it.
+            Row(
+              children: [
+                Icon(
+                  Icons.help_outline_rounded,
+                  size: 16,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Not available in the data found for this product.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _nutrientBar(String name, Object? servingRaw, Object? per100Raw,
-      Object? dvPercent, bool isLimit) {
+  Widget _nutrientBar(
+    String name,
+    Object? servingRaw,
+    Object? per100Raw,
+    Object? dvPercent,
+    bool isLimit,
+  ) {
     return NutrientBar(
       label: name,
       servingValue: _nutrient(servingRaw),
@@ -839,15 +1385,31 @@ class NutritionReport extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> scoring,
     Map<String, dynamic> classification,
+    Map<String, dynamic> nutriEngine,
+    Map<String, dynamic> novaEngine,
+    Map<String, dynamic> additiveEngine,
   ) {
     final scores = _map(scoring['scores']);
-    final sufficiency = _map(scoring['data_sufficiency']);
     final limits = _map(scores['nutrient_limits']);
     final nova = _map(scores['nova_processing']);
     final additives = _map(scores['additive_safety']);
     final trafficLights = _map(limits['traffic_lights']);
-    final missing = _list(sufficiency['missing']);
-    final unavailable = _list(sufficiency['unavailable_components']);
+    final engineNutriGrade = nutriEngine['grade']?.toString();
+    final nutriGrade =
+        engineNutriGrade ?? classification['nutriscore_grade']?.toString();
+    final engineNovaGroup = novaEngine['group'] is num
+        ? (novaEngine['group'] as num).toInt()
+        : null;
+    final legacyNovaGroup = nova['nova_group'] is num
+        ? (nova['nova_group'] as num).toInt()
+        : null;
+    final novaGroup = engineNovaGroup ?? legacyNovaGroup;
+    final additiveItems = _list(
+      additiveEngine['additives'],
+    ).whereType<Map>().toList();
+    final additiveStatusLabel = _additiveStatusLabel(
+      additiveEngine['overall_status'] ?? additives['status'],
+    );
 
     return Column(
       children: [
@@ -856,23 +1418,19 @@ class NutritionReport extends StatelessWidget {
           context,
           icon: Icons.grade_rounded,
           title: 'Nutri-Score',
-          color: AppTheme.gradeColor(
-              classification['nutriscore_grade']?.toString()),
+          color: AppTheme.gradeColor(nutriGrade ?? ''),
           children: [
-            if (classification['nutriscore_grade'] != null) ...[
-              _buildNutriScoreVisual(
-                  classification['nutriscore_grade'].toString()),
+            if (nutriGrade != null) ...[
+              _buildNutriScoreVisual(nutriGrade),
               const SizedBox(height: 8),
             ],
             Text(
-              classification['nutriscore_grade'] == null
-                  ? 'Unavailable: Open Food Facts did not report a Nutri-Score grade.'
-                  : 'Reported: ${classification['nutriscore_grade']} (Open Food Facts)',
+              engineNutriGrade != null
+                  ? 'Calculated: $engineNutriGrade'
+                  : nutriGrade == null
+                  ? 'Not available'
+                  : 'Reported: $nutriGrade',
               style: const TextStyle(fontSize: 13, color: AppTheme.textMedium),
-            ),
-            Text(
-              'Algorithm: ${_text(_map(classification['nutriscore'])['reported_algorithm_version'])}',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
             ),
           ],
         ),
@@ -883,15 +1441,12 @@ class NutritionReport extends StatelessWidget {
           title: 'UK Traffic Lights',
           color: AppTheme.accentAmber,
           children: [
-            Text(_text(limits['details']),
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textLight)),
-            const SizedBox(height: 10),
             ...['total_fat', 'saturated_fat', 'sugar', 'salt'].map((key) {
               final item = _map(trafficLights[key]);
               if (item.isEmpty) return const SizedBox.shrink();
               final color = AppTheme.trafficLightColor(
-                  item['color']?.toString());
+                item['color']?.toString(),
+              );
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -904,7 +1459,9 @@ class NutritionReport extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                              color: color.withOpacity(0.4), blurRadius: 4)
+                            color: color.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                          ),
                         ],
                       ),
                     ),
@@ -912,10 +1469,11 @@ class NutritionReport extends StatelessWidget {
                     Expanded(
                       child: Text(
                         '${key.replaceAll('_', ' ').toUpperCase()}: '
-                        '${item['value'] == null ? 'unavailable' : '${_number(item['value'])} ${item['unit']}'}'
-                        ' — ${_text(item['color'])}',
+                        '${item['value'] == null ? 'unavailable' : '${_number(item['value'])} ${item['unit']}'}',
                         style: const TextStyle(
-                            fontSize: 13, color: AppTheme.textMedium),
+                          fontSize: 13,
+                          color: AppTheme.textMedium,
+                        ),
                       ),
                     ),
                   ],
@@ -931,27 +1489,14 @@ class NutritionReport extends StatelessWidget {
           title: 'NOVA Classification',
           color: const Color(0xFF7B1FA2),
           children: [
-            if (nova['nova_group'] is num) ...[
-              _buildNovaVisual((nova['nova_group'] as num).toInt()),
+            if (novaGroup != null) ...[
+              _buildNovaVisual(novaGroup),
               const SizedBox(height: 8),
             ],
             Text(
-              nova['nova_group'] == null
-                  ? 'Unavailable: ${_text(nova['details'])}'
-                  : 'Group ${nova['nova_group']} (${_text(nova['source'])})',
+              novaGroup == null ? 'Not available' : 'Group $novaGroup',
               style: const TextStyle(fontSize: 13, color: AppTheme.textMedium),
             ),
-            Text(_text(nova['details']),
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textLight)),
-            if (_list(nova['markers_found']).isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                    'Markers: ${_list(nova['markers_found']).join(', ')}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppTheme.textLight)),
-              ),
           ],
         ),
         // Additives
@@ -961,71 +1506,60 @@ class NutritionReport extends StatelessWidget {
           title: 'Additive Safety',
           color: const Color(0xFF00897B),
           children: [
-            Text('Status: ${_text(additives['status'])}',
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textMedium)),
-            Text(_text(additives['details']),
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textLight)),
-            ..._list(additives['flagged_additives']).map((i) => Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 14, color: Color(0xFFE65100)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                          child: Text(_text(i),
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppTheme.textMedium))),
-                    ],
-                  ),
-                )),
-          ],
-        ),
-        // Overall score details
-        _assessmentCard(
-          context,
-          icon: Icons.analytics_outlined,
-          title: 'Score Breakdown',
-          color: AppTheme.primaryGreen,
-          children: [
-            Text(_text(scoring['explanation']),
-                style: const TextStyle(
-                    fontSize: 13, height: 1.4, color: AppTheme.textMedium)),
-            const SizedBox(height: 6),
-            Text(
-              'Formula: ${_text(scoring['formula_version'])}; data sufficiency: '
-              '${_text(sufficiency['status'])}${missing.isEmpty ? '' : ' (${missing.join(', ')})'}',
-              style:
-                  const TextStyle(fontSize: 12, color: AppTheme.textLight),
-            ),
-            Text(
-              'Nutrition completeness: ${_text(_map(sufficiency['nutrition'])['status'])}; '
-              'reliability: ${_text(sufficiency['score_confidence'])}.',
-              style:
-                  const TextStyle(fontSize: 12, color: AppTheme.textLight),
-            ),
-            if (unavailable.isNotEmpty)
+            if (additiveStatusLabel.isNotEmpty)
               Text(
-                'Unavailable components: ${unavailable.join(', ')}.',
-                style:
-                    const TextStyle(fontSize: 12, color: AppTheme.textLight),
+                additiveStatusLabel,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textMedium,
+                ),
               ),
-            const SizedBox(height: 4),
-            Text(
-              'This is NutriTrust’s custom comparison score, not an official government or Nutri-Score rating.',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey.shade500),
-            ),
+            const SizedBox(height: 6),
+            if (additiveItems.isNotEmpty)
+              ...additiveItems.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _additiveLine(Map<String, dynamic>.from(item)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textMedium,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Text(
+                _additiveDetails(additiveEngine, additives),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textMedium,
+                ),
+              ),
           ],
         ),
       ],
     );
+  }
+
+  String _additiveStatusLabel(Object? status) {
+    switch (status?.toString()) {
+      case 'permitted_gmp':
+        return 'Permitted under good manufacturing practice';
+      case 'permitted_with_conditions':
+        return 'Permitted with category conditions';
+      case 'restricted_or_not_permitted':
+        return 'Restricted or not permitted';
+      case 'no_additives_identified':
+        return 'No additives identified';
+      case 'insufficient_information':
+        return '';
+      case 'known':
+        return 'Additive assessment complete';
+      default:
+        return 'Additive status: ${_text(status)}';
+    }
   }
 
   Widget _buildNovaVisual(int group) {
@@ -1047,10 +1581,15 @@ class NutritionReport extends StatelessWidget {
           height: isActive ? 36 : 28,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive ? color : color.withOpacity(0.12),
+            color: isActive ? color : color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
             boxShadow: isActive
-                ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6)]
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                    ),
+                  ]
                 : null,
           ),
           child: Text(
@@ -1089,17 +1628,20 @@ class NutritionReport extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 10),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textDark)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1122,15 +1664,23 @@ class NutritionReport extends StatelessWidget {
       color: const Color(0xFF5D4037),
       children: [
         if (_text(ingredients['text']) != 'Not available') ...[
-          Text('Ingredients',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600)),
+          Text(
+            'Ingredients',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(ingredients['text'].toString(),
-              style: const TextStyle(
-                  fontSize: 13, height: 1.4, color: AppTheme.textMedium)),
+          Text(
+            ingredients['text'].toString(),
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: AppTheme.textMedium,
+            ),
+          ),
           const SizedBox(height: 12),
         ],
         Row(
@@ -1150,7 +1700,9 @@ class NutritionReport extends StatelessWidget {
               child: Text(
                 'Declared allergens: ${_list(allergens['declared']).isEmpty ? 'Unknown — no declaration was identified' : _list(allergens['declared']).join(', ')}',
                 style: const TextStyle(
-                    fontSize: 13, color: AppTheme.textMedium),
+                  fontSize: 13,
+                  color: AppTheme.textMedium,
+                ),
               ),
             ),
           ],
@@ -1162,84 +1714,24 @@ class NutritionReport extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline, size: 14, color: AppTheme.textLight),
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: AppTheme.textLight,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'May contain: ${_map(allergens['precautionary_traces'])['text']}',
                     style: const TextStyle(
-                        fontSize: 12, color: AppTheme.textLight),
+                      fontSize: 12,
+                      color: AppTheme.textLight,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-      ],
-    );
-  }
-
-  // --- Findings card ---
-  Widget _buildFindingsCard(
-    BuildContext context,
-    Map<String, dynamic> health,
-    Iterable<Map> findings,
-  ) {
-    return _assessmentCard(
-      context,
-      icon: Icons.search_rounded,
-      title: 'Data Quality & Findings',
-      color: const Color(0xFF455A64),
-      children: [
-        Text('Ruleset: ${_text(_map(health['ruleset'])['scope'])}',
-            style:
-                const TextStyle(fontSize: 12, color: AppTheme.textLight)),
-        const SizedBox(height: 8),
-        ...findings.map((item) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _text(item['category']),
-                      style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textMedium),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_text(item['id']),
-                            style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textDark)),
-                        const SizedBox(height: 2),
-                        Text(_text(item['explanation']),
-                            style: const TextStyle(
-                                fontSize: 12, color: AppTheme.textLight)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )),
       ],
     );
   }
@@ -1252,21 +1744,26 @@ class NutritionReport extends StatelessWidget {
       title: 'Warnings',
       color: const Color(0xFFE65100),
       children: warnings
-          .map((w) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• ',
-                        style: TextStyle(color: Color(0xFFE65100))),
-                    Expanded(
-                      child: Text(_text(w),
-                          style: const TextStyle(
-                              fontSize: 13, color: AppTheme.textMedium)),
+          .map(
+            (w) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• ', style: TextStyle(color: Color(0xFFE65100))),
+                  Expanded(
+                    child: Text(
+                      _text(w),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textMedium,
+                      ),
                     ),
-                  ],
-                ),
-              ))
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }

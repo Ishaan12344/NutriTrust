@@ -67,7 +67,7 @@ class NutrientBar extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -87,7 +87,7 @@ class NutrientBar extends StatelessWidget {
               tween: Tween(begin: 0, end: barProgress),
               duration: const Duration(milliseconds: 800),
               curve: Curves.easeOutCubic,
-              builder: (_, value, __) => ClipRRect(
+              builder: (_, value, _) => ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: value,

@@ -29,12 +29,23 @@ class ApiContractTests(unittest.TestCase):
     def test_openapi_documents_flutter_routes(self):
         response = self.request("GET", "/openapi.json")
         self.assertEqual(response.status_code, 200)
-        paths = response.json()["paths"]
+        spec = response.json()
+        paths = spec["paths"]
         self.assertIn("/api/v1/ocr", paths)
+        self.assertIn("/api/v1/manual-assessment", paths)
         self.assertIn("/api/v1/open-food-facts/{barcode}", paths)
+        self.assertIn("/api/v1/summary", paths)
         self.assertIn("/api/v1/auth/register", paths)
         self.assertIn("/api/v1/auth/login", paths)
         self.assertIn("/api/v1/user/profile", paths)
+        ocr_schema = paths["/api/v1/ocr"]["post"]["requestBody"]["content"][
+            "multipart/form-data"
+        ]["schema"]
+        schema_name = ocr_schema["$ref"].rsplit("/", 1)[-1]
+        self.assertIn(
+            "ingredients_file",
+            spec["components"]["schemas"][schema_name]["properties"],
+        )
 
     def test_ocr_rejects_unsupported_content_type_before_external_work(self):
         response = self.request(

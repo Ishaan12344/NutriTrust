@@ -1,5 +1,6 @@
 
 import io
+import json
 import logging
 import time
 import zipfile
@@ -7,6 +8,7 @@ from functools import lru_cache
 from pathlib import PurePosixPath
 
 import requests
+from PIL import Image, ImageOps, UnidentifiedImageError
 from sarvamai import SarvamAI
 from sarvamai.core.api_error import ApiError
 
@@ -26,6 +28,9 @@ SUPPORTED_TYPES = {
     "image/png",
 }
 
+MAX_IMAGE_DIMENSION = 2400
+JPEG_QUALITY = 90
+
 
 @lru_cache
 def _get_client() -> SarvamAI:
@@ -41,6 +46,72 @@ def _get_client() -> SarvamAI:
     return SarvamAI(api_subscription_key=api_key)
 
 
+def _prepare_image(
+    image_bytes: bytes,
+    filename: str,
+    content_type: str,
+) -> tuple[bytes, str, str]:
+    """Upright and downscale the photo before upload.
+
+    Phone photos are often much larger than OCR needs and may carry EXIF
+    orientation metadata that OCR ignores.  Normalising them reduces upload
+    time and improves recognition.  Undecodable input is passed through so the
+    provider can still make the final call.
+    """
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            image = ImageOps.exif_transpose(image)
+            if image.mode in {"RGBA", "LA"}:
+                background = Image.new("RGB", image.size, (255, 255, 255))
+                background.paste(image, mask=image.getchannel("A"))
+                image = background
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
+            image.thumbnail(
+                (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS
+            )
+            output = io.BytesIO()
+            image.save(output, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+    except (UnidentifiedImageError, OSError) as exc:
+        logger.warning("Could not preprocess image for OCR (%s); sending original.", exc)
+        return image_bytes, filename, content_type
+
+    prepared = output.getvalue()
+    logger.info(
+        "prepared OCR image: %s bytes -> %s bytes", len(image_bytes), len(prepared)
+    )
+    return prepared, f"{PurePosixPath(filename).stem or 'food-label'}.jpg", "image/jpeg"
+
+
+def _parse_json_text(raw: str) -> str:
+    """Extract text blocks from Sarvam's JSON digitise output."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return raw.strip()
+
+    lines: list[str] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key in ("text", "extracted_text", "document"):
+                value = node.get(key)
+                if isinstance(value, str) and value.strip():
+                    lines.append(value.strip())
+                    return
+            for key in ("blocks", "pages", "children", "data", "result"):
+                if key in node:
+                    walk(node[key])
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+        elif isinstance(node, str) and node.strip():
+            lines.append(node.strip())
+
+    walk(data)
+    return "\n".join(dict.fromkeys(line for line in lines if line))
+
+
 def extract_text_from_image(
     image_bytes: bytes,
     filename: str,
@@ -53,6 +124,10 @@ def extract_text_from_image(
     if not image_bytes:
         raise ValueError("The uploaded image is empty.")
 
+    prepared_bytes, prepared_name, prepared_type = _prepare_image(
+        image_bytes, filename, content_type
+    )
+
     client = _get_client()
     timeout_seconds = get_settings().sarvam_timeout_seconds
     download_timeout_seconds = get_settings().sarvam_download_timeout_seconds
@@ -62,9 +137,9 @@ def extract_text_from_image(
         job = client.doc_ai.digitise(
             file=[
                 (
-                    filename,
-                    io.BytesIO(image_bytes),
-                    content_type,
+                    prepared_name,
+                    io.BytesIO(prepared_bytes),
+                    prepared_type,
                 )
             ],
             language="en-IN",
@@ -73,6 +148,7 @@ def extract_text_from_image(
         raise RuntimeError(
             f"Sarvam rejected the OCR request (HTTP {exc.status_code})."
         ) from exc
+
 
     logger.info("Sarvam OCR job created: job_id=%s", job.job_id)
 
@@ -128,7 +204,7 @@ def extract_text_from_image(
                 name for name in archive.namelist()
                 if not name.endswith("/")
                 and PurePosixPath(name).suffix.lower()
-                in {".md", ".html", ".txt"}
+                in {".md", ".html", ".txt", ".json"}
                 and "metadata/" not in name.lower()
             ]
 
@@ -137,17 +213,23 @@ def extract_text_from_image(
                     "Sarvam completed OCR but returned no text file."
                 )
 
-            # Prefer the primary Markdown document.
+            # Prefer the primary Markdown document, then HTML, text, and JSON.
+            preference = {".md": 0, ".html": 1, ".txt": 2, ".json": 3}
             candidates.sort(
                 key=lambda name: (
-                    PurePosixPath(name).suffix.lower() != ".md",
+                    preference.get(PurePosixPath(name).suffix.lower(), 4),
                     name,
                 )
             )
 
-            extracted_text = archive.read(
-                candidates[0]
-            ).decode("utf-8-sig", errors="replace").strip()
+            raw_text = archive.read(candidates[0]).decode(
+                "utf-8-sig", errors="replace"
+            )
+            extracted_text = (
+                _parse_json_text(raw_text)
+                if PurePosixPath(candidates[0]).suffix.lower() == ".json"
+                else raw_text.strip()
+            )
 
     except zipfile.BadZipFile as exc:
         raise RuntimeError(

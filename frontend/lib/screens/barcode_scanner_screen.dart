@@ -66,7 +66,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
@@ -93,7 +93,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                   ..._cornerBrackets(scanAreaSize),
                   AnimatedBuilder(
                     animation: _scanLineController,
-                    builder: (_, __) => Positioned(
+                    builder: (_, _) => Positioned(
                       top: _scanLineController.value * (scanAreaSize - 4),
                       left: 16,
                       right: 16,
@@ -103,16 +103,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                           borderRadius: BorderRadius.circular(2),
                           gradient: LinearGradient(
                             colors: [
-                              AppTheme.accentTeal.withOpacity(0),
+                              AppTheme.accentTeal.withValues(alpha: 0),
                               AppTheme.accentTeal,
                               AppTheme.primaryGreen,
                               AppTheme.accentTeal,
-                              AppTheme.accentTeal.withOpacity(0),
+                              AppTheme.accentTeal.withValues(alpha: 0),
                             ],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.accentTeal.withOpacity(0.6),
+                              color: AppTheme.accentTeal.withValues(alpha: 0.6),
                               blurRadius: 12,
                               spreadRadius: 2,
                             ),
@@ -135,7 +135,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Text(
@@ -152,7 +152,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                 Text(
                   'It will be scanned automatically',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 13,
                   ),
                 ),
@@ -228,7 +228,7 @@ class _ScanOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = Colors.black.withOpacity(0.55);
+    final bg = Paint()..color = Colors.black.withValues(alpha: 0.55);
     final center = Offset(size.width / 2, size.height / 2);
     final cutout = RRect.fromRectAndRadius(
       Rect.fromCenter(

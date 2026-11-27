@@ -233,8 +233,35 @@ def _classification_finding(
     }, None)
 
 
-def analyze_product_health(merged_product: dict[str, Any] | None) -> dict[str, Any]:
+def _engine_classification_finding(
+    finding: dict[str, Any],
+    warning: str | None,
+    value: Any,
+    *,
+    valid,
+    explanation: str,
+    source: str,
+) -> tuple[dict[str, Any], str | None]:
+    """Replace a missing/unverified classification finding with an engine result."""
+    if finding.get("status") == "known" or not valid(value):
+        return finding, warning
+    return ({
+        "id": finding["id"], "type": "classification", "status": "known",
+        "category": "calculated_classification", "severity": "informational",
+        "measured": value, "applicable_rule": None,
+        "explanation": explanation, "source": source,
+    }, None)
+
+
+def analyze_product_health(
+    merged_product: dict[str, Any] | None,
+    engine_results: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Return transparent nutrient and label findings for ``merge_product_data`` output.
+
+    ``engine_results`` (Nutri-Score/NOVA/additive engines) fills classification
+    findings that the merged data could not supply externally, so the report
+    never shows "not supplied" next to a value the engines already calculated.
 
     This is an evidence summary, not medical advice, product-safety determination,
     regulatory compliance check, or overall health score.
@@ -393,6 +420,9 @@ def analyze_product_health(merged_product: dict[str, Any] | None) -> dict[str, A
 
     classification = product.get("classification") if isinstance(product.get("classification"), dict) else {}
     data_sources = product.get("data_sources") if isinstance(product.get("data_sources"), dict) else {}
+    engines = engine_results if isinstance(engine_results, dict) else {}
+    nova_engine = engines.get("nova") if isinstance(engines.get("nova"), dict) else {}
+    nutri_engine = engines.get("nutri_score") if isinstance(engines.get("nutri_score"), dict) else {}
     off_found = bool((product.get("open_food_facts") or {}).get("found"))
     trusted_nova = off_found and data_sources.get("nova_group") == "open_food_facts"
     nova = classification.get("nova_group")
@@ -401,6 +431,17 @@ def analyze_product_health(merged_product: dict[str, Any] | None) -> dict[str, A
         data_sources.get("nova_group"),
         valid=lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and float(v).is_integer() and 1 <= float(v) <= 4,
         trust_source=trusted_nova,
+    )
+    nova_finding, warning = _engine_classification_finding(
+        nova_finding, warning, nova_engine.get("group"),
+        valid=lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+        and float(v).is_integer() and 1 <= float(v) <= 4,
+        explanation=(
+            "NOVA group was calculated from the scanned ingredient list by the "
+            "NutriTrust rule engine because the merged product data did not supply "
+            "an external value; it is not an Open Food Facts classification."
+        ),
+        source="nutritrust_nova_engine",
     )
     findings.append(nova_finding)
     if warning:
@@ -414,22 +455,41 @@ def analyze_product_health(merged_product: dict[str, Any] | None) -> dict[str, A
         valid=lambda v: isinstance(v, str) and v.lower() in {"a", "b", "c", "d", "e"},
         trust_source=trusted_nutriscore,
     )
+    grade_finding, warning = _engine_classification_finding(
+        grade_finding, warning, nutri_engine.get("grade"),
+        valid=lambda v: isinstance(v, str) and v.lower() in {"a", "b", "c", "d", "e"},
+        explanation=(
+            "Nutri-Score grade was calculated from the per-100 g nutrition values "
+            "by the NutriTrust engine because the merged product data did not supply "
+            "an external grade; it is not an Open Food Facts value."
+        ),
+        source="nutritrust_nutri_score_engine",
+    )
     findings.append(grade_finding)
     if warning:
         warnings.append(warning)
 
     additive_tags = classification.get("additives_tags") or []
     additive_source = data_sources.get("additives")
-    if additive_tags and additive_source == "open_food_facts":
-        identified = [{"identifier": tag, "source": "open_food_facts"} for tag in additive_tags]
-    else:
-        identified = []
+    identified: list[dict[str, Any]] = []
+    seen_identifiers: set[str] = set()
+
+    def _record_identifier(identifier: str, source: str | None) -> None:
+        cleaned = re.sub(r"[\s\-]+", "", str(identifier)).upper()
+        if cleaned.startswith("EN:"):
+            cleaned = cleaned[3:]
+        if not cleaned or cleaned in seen_identifiers:
+            return
+        seen_identifiers.add(cleaned)
+        identified.append({"identifier": cleaned, "source": source or "ocr_label"})
+
+    # OCR- and database-derived tags are both identification evidence.
+    for tag in additive_tags:
+        _record_identifier(str(tag), additive_source)
     for item in ingredient_items if isinstance(ingredient_items, list) else []:
         if isinstance(item, str):
             for match in re.finditer(r"\bE\s*\d{3,4}[A-Z]?\b", item, re.IGNORECASE):
-                identifier = re.sub(r"\s+", "", match.group(0)).upper()
-                if not any(additive["identifier"].upper() == identifier for additive in identified):
-                    identified.append({"identifier": identifier, "source": ingredient_source or "ocr_label"})
+                _record_identifier(re.sub(r"\s+", "", match.group(0)).upper(), ingredient_source)
     if identified:
         findings.append({
             "id": "ingredients.identified_additives", "type": "additive_identification",

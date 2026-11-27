@@ -1,0 +1,34 @@
+{
+  "group1_terms": [
+    "water", "fresh vegetables", "vegetables", "fresh fruits", "fruits", "apple", "apples", "banana", "bananas", "orange", "oranges",
+    "beans", "lentils", "chickpeas", "rice", "oats", "wheat", "flour", "pasta", "potato", "egg", "eggs",
+    "fish", "meat", "chicken", "plain milk", "milk", "plain yoghurt", "plain yogurt", "yoghurt", "yogurt",
+    "tea", "coffee", "herbs", "spices", "salt-free", "frozen"
+  ],
+  "group2_terms": [
+    "salt", "sugar", "brown sugar", "white sugar", "molasses", "honey", "maple syrup",
+    "vegetable oil", "olive oil", "sunflower oil", "rapeseed oil", "palm oil", "coconut oil",
+    "butter", "ghee", "lard", "starch", "corn starch", "potato starch"
+  ],
+  "group3_terms": [
+    "canned", "bottled", "tinned", "fermented", "cured", "smoked", "cheese", "bread", "fruits in syrup",
+    "salted nuts", "tomato sauce", "pickled", "pasteurised", "pasteurized", "cooked"
+  ],
+  "g4_non_culinary_terms": [
+    "high fructose corn syrup", "high-fructose corn syrup", "maltodextrin", "dextrose", "invert sugar",
+    "glucose syrup", "glucose-fructose syrup", "corn syrup", "fruit juice concentrate", "fruit-juice concentrate",
+    "hydrolysed protein", "hydrolyzed protein", "protein isolate", "soy protein isolate", "pea protein isolate",
+    "whey protein isolate", "casein", "sodium caseinate", "gluten", "mechanically separated meat",
+    "hydrogenated", "partially hydrogenated", "interesterified", "modified starch", "isolated fibre", "isolated fiber"
+  ],
+  "g4_cosmetic_terms": [
+    "flavour", "flavor", "flavouring", "flavoring", "flavour enhancer", "flavor enhancer",
+    "colour", "color", "colouring", "coloring", "emulsifier", "emulsifying salt", "emulsifying agents",
+    "non-nutritive sweetener", "artificial sweetener", "sweetener", "thickener", "anti-foaming agent",
+    "bulking agent", "carbonating agent", "foaming agent", "gelling agent", "glazing agent"
+  ],
+  "ambiguous_terms": [
+    "preservative", "antioxidant", "stabiliser", "stabilizer", "raising agent", "baking powder",
+    "anticaking agent", "anti-caking agent", "humectant"
+  ]
+}

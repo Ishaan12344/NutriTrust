@@ -235,9 +235,9 @@ class _LoginScreenState extends State<LoginScreen>
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceTint.withOpacity(0.3),
+        color: AppTheme.surfaceTint.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.1)),
+        border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,11 +261,11 @@ class _LoginScreenState extends State<LoginScreen>
                       selected: selected.contains(choice),
                       onSelected: (_) => toggle(choice),
                       selectedColor:
-                          AppTheme.primaryGreen.withOpacity(0.15),
+                          AppTheme.primaryGreen.withValues(alpha: 0.15),
                       checkmarkColor: AppTheme.primaryGreen,
                       side: BorderSide(
                         color: selected.contains(choice)
-                            ? AppTheme.primaryGreen.withOpacity(0.4)
+                            ? AppTheme.primaryGreen.withValues(alpha: 0.4)
                             : Colors.grey.shade300,
                       ),
                     ))
@@ -294,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Icon(Icons.eco_rounded,
@@ -316,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                           letterSpacing: 1,
                         ),
                       ),
@@ -343,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen>
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 24,
                               offset: const Offset(0, 8),
                             ),
@@ -551,7 +551,7 @@ class _LoginScreenState extends State<LoginScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
+                color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.favorite_outline_rounded,
@@ -614,7 +614,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _gender,
+          initialValue: _gender,
           decoration: const InputDecoration(
             labelText: 'Gender (optional)',
             prefixIcon: Icon(Icons.wc_outlined),

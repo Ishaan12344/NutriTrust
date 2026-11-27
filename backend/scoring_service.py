@@ -211,6 +211,9 @@ def rate(product_data: dict) -> dict:
                 + ", ".join(unavailable_components)
                 + "."
             )
+    rating_reasons = _rating_reasons(
+        nutrition, nova_result, limits_result, additive_result, limit=2
+    )
     contributions = {
         name: None if value is None else round(effective_weights[name] * value, 2)
         for name, value in component_scores.items()
@@ -276,6 +279,10 @@ def rate(product_data: dict) -> dict:
             },
         },
         "explanation": explanation,
+        # A compact, display-ready explanation for the rating.  The full
+        # explanation remains available to summaries, while the client can
+        # present these one or two concrete reasons directly below the score.
+        "rating_reasons": rating_reasons,
     }
 
 # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -564,6 +571,44 @@ def _get_grade(score: int) -> tuple:
 # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 # Explanation Generator
 # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+def _rating_reasons(
+    nutrition: dict,
+    nova_result: dict,
+    limits_result: dict,
+    additive_result: dict,
+    *,
+    limit: int = 2,
+) -> list[str]:
+    """Return the most useful one or two plain-language score drivers."""
+    concerns: list[str] = []
+    positives: list[str] = []
+    traffic_lights = limits_result.get("traffic_lights", {})
+    if isinstance(traffic_lights, dict):
+        for nutrient, label in (
+            ("sugar", "Sugar"),
+            ("salt", "Salt"),
+            ("saturated_fat", "Saturated fat"),
+        ):
+            value = traffic_lights.get(nutrient)
+            if isinstance(value, dict) and value.get("color") == "red":
+                concerns.append(f"{label} is high per 100 g.")
+    if nova_result.get("nova_group") == 4:
+        concerns.append("This is classified as ultra-processed (NOVA 4).")
+    if additive_result.get("flagged_additives"):
+        concerns.append(
+            f"{len(additive_result['flagged_additives'])} additive(s) need caution."
+        )
+    if nova_result.get("nova_group") == 1:
+        positives.append("It is minimally processed (NOVA 1).")
+    if nutrition.get("fiber", 0) >= 3:
+        positives.append(f"It provides {nutrition['fiber']:g} g fiber per 100 g.")
+    if nutrition.get("protein", 0) >= 8:
+        positives.append(f"It provides {nutrition['protein']:g} g protein per 100 g.")
+    return (concerns + positives)[:limit] or [
+        "Based on the available nutrition and ingredient information."
+    ]
+
 
 def _generate_explanation(
     overall_score: int,

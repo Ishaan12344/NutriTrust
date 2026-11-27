@@ -161,7 +161,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: primaryGreen.withOpacity(0.5)),
+          side: BorderSide(color: primaryGreen.withValues(alpha: 0.5)),
           textStyle:
               const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),

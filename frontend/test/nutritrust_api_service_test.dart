@@ -53,6 +53,7 @@ void main() {
         );
         expect(request.body, contains('name="file"'));
         expect(request.body, contains('filename="nutrition.png"'));
+        expect(request.body, isNot(contains('name="ingredients_file"')));
         return http.Response(jsonEncode(responseBody), 200);
       });
       final service = NutriTrustApiService(
@@ -68,6 +69,34 @@ void main() {
       );
 
       expect(response['success'], isTrue);
+      service.close();
+    },
+  );
+
+  test(
+    'label analysis sends the ingredients image as a second multipart file',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/api/v1/ocr');
+        expect(request.body, contains('name="file"'));
+        expect(request.body, contains('name="ingredients_file"'));
+        expect(request.body, contains('filename="ingredients.png"'));
+        return http.Response(jsonEncode(responseBody), 200);
+      });
+      final service = NutriTrustApiService(
+        client: client,
+        baseUrl: 'https://api.example.test',
+      );
+
+      await service.analyzeLabel(
+        imageBytes: utf8.encode('png-image-bytes'),
+        filename: 'nutrition.png',
+        contentType: 'image/png',
+        ingredientsImageBytes: utf8.encode('png-ingredients-bytes'),
+        ingredientsFilename: 'ingredients.png',
+        ingredientsContentType: 'image/png',
+      );
+
       service.close();
     },
   );
@@ -108,6 +137,41 @@ void main() {
     final res = await service.login(username: 'johndoe', password: 'secret');
     expect(res['success'], isTrue);
     expect((res['user'] as Map)['username'], 'johndoe');
+    service.close();
+  });
+
+  test('summary request sends username and strips raw OFF data', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/v1/summary');
+      final body = jsonDecode(request.body) as Map;
+      expect(body['username'], 'johndoe');
+      final analysis = body['product_analysis'] as Map;
+      expect(analysis['product'], containsPair('name', 'Sample food'));
+      // The bulky raw Open Food Facts payload must not be sent back.
+      expect((analysis['open_food_facts'] as Map).containsKey('data'), isFalse);
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'status': 'ok',
+          'summary': 'A short summary.',
+        }),
+        200,
+      );
+    });
+    final service = NutriTrustApiService(client: client, baseUrl: 'https://api.example.test');
+
+    final res = await service.generateSummary(
+      username: 'johndoe',
+      response: {
+        'product_analysis': {
+          'product': {'name': 'Sample food'},
+          'open_food_facts': {'found': true, 'data': {'raw': 'payload'}},
+        },
+      },
+    );
+
+    expect(res['summary'], 'A short summary.');
     service.close();
   });
 }

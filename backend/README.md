@@ -12,6 +12,9 @@ FastAPI routes (main.py)
   -> parsing and normalization (nutrition_parser.py, nutrition_normalizer.py)
   -> deterministic source merge (food_data_merger.py)
   -> health findings + composite score (health_analyzer.py, scoring_service.py)
+  -> independent food-intelligence engines
+     (nutri_score_engine.py, nova_engine.py, additive_regulatory_engine.py)
+  -> optional local-LLM summary (summary_service.py)
 ```
 
 `open_food_facts_service.py` is a read-only external client and normalizes its
@@ -64,6 +67,14 @@ The Flutter client uses these endpoints and their existing fields are retained:
   latter includes field provenance, data-quality status, independent health
   findings, and the same score object; `data` and `scoring` remain for existing
   Flutter clients.
+- `POST /api/v1/manual-assessment` — JSON body with manually supplied product data (name, category, ingredients, per-100 nutrients and optional additive concentrations). Returns the same three engine results and unified analysis shape as the scan endpoints.
+- `POST /api/v1/summary` — natural-language summary of a scan for one user.
+  Body: `{"username": "...", "product_analysis": {...}}`. The user's saved
+  health profile is looked up server-side and combined with the product facts,
+  health findings, and score. Returns `{"success", "status", "summary",
+  "source", "model", "prompt_version"}` where `source` is `model` or
+  `fallback`. The endpoint never fails because of the model: it always returns
+  text to show, and never breaks the scan endpoints.
 
 Example label request:
 
@@ -84,6 +95,45 @@ tokens do not conflict. The detailed composite-score formula, source limits,
 and limitations are documented in [SCORING_POLICY.md](SCORING_POLICY.md).
 NutriTrust component scores are not official Nutri-Score classifications or
 medical advice.
+
+The independent Nutri-Score, NOVA, and FSSAI additive engines, their versioned rules, and their limitations are documented in [FOOD_INTELLIGENCE_REFERENCES.md](FOOD_INTELLIGENCE_REFERENCES.md).
+
+## Summary model
+
+`POST /api/v1/summary` uses the instruction-tuned Qwen2.5-1.5B model bundled in
+`models/Qwen2.5-1.5B-Instruct`. It is loaded lazily on the first request (about
+4-5 s on CPU) and reused afterwards; generation is serialized and bounded by
+`NUTRITRUST_SUMMARY_MAX_NEW_TOKENS`. On CPU, expect roughly 10-30 s per summary.
+
+The prompt contains only data the pipeline already produced plus the user's
+saved profile, and the model is instructed not to invent values, to state what
+is unknown, and not to give medical advice. Set
+`NUTRITRUST_SUMMARY_ENABLED=false` to disable the endpoint, or point
+`NUTRITRUST_SUMMARY_MODEL_PATH` at another compatible local model directory.
+
+### Incomplete product data
+
+Barcode lookups often return partial or empty Open Food Facts records. The
+summary is built so this never produces a blank result or an invented one:
+
+- If the analysis has no nutrition, ingredient, or allergen data at all, no
+  generation is attempted. A deterministic summary is returned instead
+  (`source: "fallback"`), stating what could not be scored and what is missing.
+  This also keeps a not-found barcode fast: about 20 ms rather than 20 s.
+- When at least some data exists, the model writes the summary, and the prompt
+  marks every missing fact as `not available`.
+- The result is then checked against the pipeline's facts. A summary is
+  rejected, and replaced by the deterministic fallback, when it claims the
+  presence or absence of an allergen with no matching allergen data, calls a
+  product allergen-free, or describes a nutrient band for a nutrient that was
+  never measured. A 1.5B model does all four on sparse input.
+- A model error, timeout, or empty output also falls back, so the response
+  always carries text. Only `NUTRITRUST_SUMMARY_ENABLED=false` returns no
+  summary.
+
+On the Flutter side, no report section is dropped when data is missing: the
+nutrition sections stay visible and say the values were not found, and the AI
+Summary card shows whatever the endpoint returned.
 
 ## Tests
 
