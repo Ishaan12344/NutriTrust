@@ -6,6 +6,7 @@ import time
 import zipfile
 from functools import lru_cache
 from pathlib import PurePosixPath
+from typing import Any, Callable, TypeVar
 
 import requests
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -30,6 +31,27 @@ SUPPORTED_TYPES = {
 
 MAX_IMAGE_DIMENSION = 2400
 JPEG_QUALITY = 90
+
+
+T = TypeVar("T")
+
+# shortcut: flat backoff (0.5s, 1s, 2s); replace with jitter + provider Retry-After
+# when Sarvam exposes it. Transient provider hiccups are the common OCR failure.
+def _with_retry(
+    operation: Callable[..., T],
+    *args: Any,
+    attempts: int = 3,
+    **kwargs: Any,
+) -> T:
+    """Run `operation`, retrying transient Sarvam/network failures with backoff."""
+    for attempt in range(attempts):
+        try:
+            return operation(*args, **kwargs)
+        except (ApiError, requests.RequestException):
+            if attempt + 1 >= attempts:
+                raise
+            time.sleep(0.5 * (2 ** attempt))
+    raise RuntimeError("unreachable")  # pragma: no cover
 
 
 @lru_cache
@@ -83,8 +105,14 @@ def _prepare_image(
     return prepared, f"{PurePosixPath(filename).stem or 'food-label'}.jpg", "image/jpeg"
 
 
+def _download_once(method: str, url: str, headers: Any, timeout: float) -> bytes:
+    response = requests.request(method=method, url=url, headers=headers, timeout=timeout)
+    response.raise_for_status()
+    return response.content
+
+
 def _parse_json_text(raw: str) -> str:
-    """Extract text blocks from Sarvam's JSON digitise output."""
+    """Extract text blocks from Sarvam's JSON parse output."""
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
@@ -98,7 +126,6 @@ def _parse_json_text(raw: str) -> str:
                 value = node.get(key)
                 if isinstance(value, str) and value.strip():
                     lines.append(value.strip())
-                    return
             for key in ("blocks", "pages", "children", "data", "result"):
                 if key in node:
                     walk(node[key])
@@ -132,17 +159,25 @@ def extract_text_from_image(
     timeout_seconds = get_settings().sarvam_timeout_seconds
     download_timeout_seconds = get_settings().sarvam_download_timeout_seconds
 
-    # Sarvam's SDK accepts a list of file tuples.
+    # Sarvam versions differ: sarvamai 0.1.49 exposes `doc_ai.parse`, while
+    # 0.1.37 exposes `doc_ai.digitise`; both preserve layout and accept the
+    # same `language`/`content_type`. Prefer `parse` when present.
+    # NOTE: neither has a prompt/schema argument; structured output is produced
+    # locally by `nutrition_parser.validate_food_label`.
+    parse_operation = getattr(client.doc_ai, "parse", None)
+    if parse_operation is None:
+        parse_operation = getattr(client.doc_ai, "digitise", None)
+    if parse_operation is None:
+        raise RuntimeError(
+            "Sarvam DocAiClient exposes neither `parse` nor `digitise`; "
+            "upgrade/downgrade sarvamai to a supported version."
+        )
     try:
-        job = client.doc_ai.digitise(
-            file=[
-                (
-                    prepared_name,
-                    io.BytesIO(prepared_bytes),
-                    prepared_type,
-                )
-            ],
+        job = _with_retry(
+            parse_operation,
+            file=[(prepared_name, io.BytesIO(prepared_bytes), prepared_type)],
             language="en-IN",
+            content_type="printed",
         )
     except ApiError as exc:
         raise RuntimeError(
@@ -156,7 +191,7 @@ def extract_text_from_image(
 
     try:
         while True:
-            status = client.doc_ai.get_status(job_id=job.job_id)
+            status = _with_retry(client.doc_ai.get_status, job_id=job.job_id)
             state = status.status.lower()
             logger.info("Sarvam OCR poll: job_id=%s status=%s", job.job_id, state)
 
@@ -175,17 +210,16 @@ def extract_text_from_image(
                 f"Sarvam OCR job ended with status: {state}."
             )
 
-        download = client.doc_ai.get_download_url(
-            job_id=job.job_id
-        )
+        download = _with_retry(client.doc_ai.get_download_url, job_id=job.job_id)
         logger.info("Sarvam OCR completed; downloading output: job_id=%s", job.job_id)
 
-        response = requests.request(
+        response = _with_retry(
+            _download_once,
             method=download.method,
             url=download.url,
+            headers=download.headers,
             timeout=download_timeout_seconds,
         )
-        response.raise_for_status()
 
     except ApiError as exc:
         raise RuntimeError(
@@ -196,10 +230,9 @@ def extract_text_from_image(
             "Could not download the OCR output from Sarvam."
         ) from exc
 
-    # Digitise output is a ZIP containing the document text
-    # and per-page metadata.
+    # Parse output is a ZIP containing the document text and per-page metadata.
     try:
-        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        with zipfile.ZipFile(io.BytesIO(response)) as archive:
             candidates = [
                 name for name in archive.namelist()
                 if not name.endswith("/")

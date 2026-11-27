@@ -2,6 +2,7 @@
 
 import asyncio
 import unittest
+from unittest.mock import patch
 
 import httpx
 
@@ -55,6 +56,17 @@ class ApiContractTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 415)
         self.assertEqual(response.json()["detail"], "Upload a JPG, JPEG or PNG image.")
+
+    def test_tracker_delete_route_removes_item_for_user(self):
+        with patch("main.delete_tracker_item") as delete_item:
+            response = self.request(
+                "DELETE",
+                "/api/v1/tracker/items/item-123?username=pushkar%40example.com",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"success": True})
+        delete_item.assert_called_once_with("item-123", "pushkar@example.com")
 
 
 if __name__ == "__main__":

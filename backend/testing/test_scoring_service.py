@@ -214,6 +214,19 @@ class ScoringServiceTests(unittest.TestCase):
         self.assertIn("scoring", body)
         self.assertIn("scores", body["product_analysis"]["scoring"])
 
+    def test_ocr_nova_engine_and_e_number_regex_contribute_to_score(self):
+        result = rate({
+            "nutrition_per_100g": COMPLETE_NUTRITION,
+            "ingredients_text": "Wheat flour, E500",
+            "additives_tags": ["E500"],
+            "additives_count": 1,
+            "nova_group": 4,
+            "nova_source": "nutritrust_nova_engine",
+        })
+        self.assertIsInstance(result["scores"]["overall"], int)
+        self.assertEqual(result["scores"]["nova_processing"]["source"], "nutritrust_nova_engine")
+        self.assertEqual(result["scores"]["additive_safety"]["status"], "known")
+
 
 if __name__ == "__main__":
     unittest.main()

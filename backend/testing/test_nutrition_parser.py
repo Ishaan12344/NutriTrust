@@ -112,6 +112,11 @@ class NutritionParserTests(unittest.TestCase):
         self.assertIn("unresolved", [item["status"] for item in parsed["nutrition_review"] if "Vitamin D" in item["row"]])
 
     def test_energy_format_and_html_column_association(self):
+        # kJ + kcal lines must not read the kJ number as kcal; kJ-only converts.
+        kj_and_kcal = parse_food_label("Energy 1460 kJ / 350 kcal\nProtein 4 g")
+        self.assertEqual(kj_and_kcal["calories_per_serving_kcal"], 350.0)
+        kj_only = parse_food_label("Energy 1460 kJ\nProtein 4 g")
+        self.assertAlmostEqual(kj_only["calories_per_serving_kcal"], round(1460 / 4.184, 2))
         energy = parse_food_label("Energy 439 kcal\nTotal fat 14.87 g\nProtein 4 g")
         self.assertEqual(energy["calories_per_serving_kcal"], 439.0)
         table = parse_food_label(
@@ -121,6 +126,24 @@ class NutritionParserTests(unittest.TestCase):
         self.assertEqual(table["nutrition"]["sodium"], {"value": 419.96, "unit": "mg"})
         self.assertEqual(table["daily_values_percent"]["sodium"], 18.0)
         self.assertEqual(table["nutrition"]["dietary_fiber"], {"value": 1.78, "unit": "g"})
+        bare = parse_food_label("Carbohydrate | 45 g\nProtein | 10 g")
+        self.assertEqual(bare["nutrition"]["total_carbohydrate"], {"value": 45.0, "unit": "g"})
+
+    def test_per_serving_and_per_100g_columns_prefer_per_100g_when_present(self):
+        table = parse_food_label(
+            "<table>"
+            "<tr><th>Nutrient</th><th>Per serving (30 g)</th><th>Per 100 g</th></tr>"
+            "<tr><td>Energy</td><td>110 kcal</td><td>350 kcal</td></tr>"
+            "<tr><td>Protein</td><td>3 g</td><td>10 g</td></tr>"
+            "<tr><td>Carbohydrate</td><td>14 g</td><td>45 g</td></tr>"
+            "<tr><td>Total fat</td><td>2 g</td><td>6 g</td></tr>"
+            "</table>"
+        )
+        self.assertEqual(table["reference_basis"]["detected"], "per_100g")
+        self.assertEqual(table["calories_per_serving_kcal"], 350.0)
+        self.assertEqual(table["nutrition"]["protein"], {"value": 10.0, "unit": "g"})
+        self.assertEqual(table["nutrition"]["total_carbohydrate"], {"value": 45.0, "unit": "g"})
+        self.assertEqual(table["nutrition"]["total_fat"], {"value": 6.0, "unit": "g"})
 
 
     def test_additives_and_salt_are_recognized(self):
@@ -151,6 +174,36 @@ class NutritionParserTests(unittest.TestCase):
     def test_full_text_fallback_does_not_read_vitamin_e_as_an_additive(self):
         parsed = parse_food_label("Nutrition Facts\nVitamin E 100 mcg")
         self.assertEqual(parsed["additives_tags"], [])
+
+    def test_sarvam_markdown_pipe_table_and_split_sugar_line(self):
+        ocr_text = (
+            "Product Name: Choco Biscuits\n"
+            "Ingredients: Refined wheat flour, sugar, palm oil, cocoa solids, raising agent (500(ii))\n"
+            "Nutrition Information\n"
+            "Serving size: 20 g\n"
+            "| Nutrient | Per serving | Per 100 gm |\n"
+            "| --- | --- | --- |\n"
+            "| Energy (kcal) | 96 | 480 |\n"
+            "| Fat | 4 gm | 20 gm |\n"
+            "| Saturates | 2 gm | 10 gm |\n"
+            "| Carbohydrate | 13 gm | 65 gm |\n"
+            "| Total Sugars | | |\n"
+            "24 gm\n"
+            "| Protein | 1.4 gm | 7 gm |\n"
+            "| Sodium | 60 mg | 300 mg |\n"
+        )
+        parsed = parse_food_label(ocr_text)
+        self.assertEqual(parsed["reference_basis"]["detected"], "per_100g")
+        self.assertEqual(parsed["calories_per_serving_kcal"], 480.0)
+        self.assertEqual(parsed["nutrition"]["total_fat"], {"value": 20.0, "unit": "g"})
+        self.assertEqual(parsed["nutrition"]["saturated_fat"], {"value": 10.0, "unit": "g"})
+        self.assertEqual(parsed["nutrition"]["total_carbohydrate"], {"value": 65.0, "unit": "g"})
+        self.assertEqual(parsed["nutrition"]["total_sugars"], {"value": 24.0, "unit": "g"})
+        self.assertEqual(parsed["nutrition"]["protein"], {"value": 7.0, "unit": "g"})
+        self.assertEqual(parsed["nutrition"]["sodium"], {"value": 300.0, "unit": "mg"})
+        self.assertFalse(
+            any(item.get("nutrient") == "total_sugars" for item in parsed["nutrition_review"])
+        )
 
 
 if __name__ == "__main__":

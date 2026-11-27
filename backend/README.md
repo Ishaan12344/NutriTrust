@@ -137,8 +137,9 @@ Summary card shows whatever the endpoint returned.
 
 ## Tests
 
-Tests mock OCR and Open Food Facts calls; they do not require a network request
-or a real OCR key.
+Backend test and debugging modules are grouped in `testing/`. Tests mock OCR
+and Open Food Facts calls; they do not require a network request or a real OCR
+key.
 
 ```powershell
 cd backend

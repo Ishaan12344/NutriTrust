@@ -39,8 +39,6 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
   @override
   void didUpdateWidget(AiSummaryCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // A retry can rebuild this card with a new analysis while it stays mounted,
-    // so reload whenever the response changes instead of showing a stale summary.
     if (!identical(oldWidget.response, widget.response)) {
       _load();
     }
@@ -103,6 +101,7 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -113,13 +112,15 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
             AppTheme.primaryGreen.withValues(alpha: 0.06),
           ],
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.accentTeal.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row — always has Expanded so it never overflows
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -127,30 +128,40 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
                   color: AppTheme.accentTeal.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.auto_awesome_outlined,
-                    color: AppTheme.primaryGreen, size: 20),
+                child: const Icon(
+                  Icons.auto_awesome_outlined,
+                  color: AppTheme.primaryGreen,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('AI Summary',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textDark)),
-                    Text('From your profile and this product',
-                        style: TextStyle(
-                            fontSize: 12, color: AppTheme.textLight)),
+                    Text(
+                      'AI Summary',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textDark,
+                      ),
+                    ),
+                    Text(
+                      'From your profile and this product',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
+
+          // Body — always uses full width; loading text wrapped in Expanded
           if (_loading)
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(
                   width: 16,
@@ -158,12 +169,16 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  'Generating summary\u2026 this can take a few seconds.',
-                  style: TextStyle(
+                // Expanded prevents the text from overflowing
+                Expanded(
+                  child: Text(
+                    'Generating summary… this can take a few seconds.',
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.4,
-                      color: Colors.grey.shade600),
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
                 ),
               ],
             )
@@ -171,22 +186,30 @@ class _AiSummaryCardState extends State<AiSummaryCard> {
             Text(
               _summary!,
               style: const TextStyle(
-                  fontSize: 13.5, height: 1.5, color: AppTheme.textDark),
+                fontSize: 13.5,
+                height: 1.5,
+                color: AppTheme.textDark,
+              ),
             )
           else
             Text(
               _note ?? 'The summary is unavailable right now.',
               style: TextStyle(
-                  fontSize: 13, height: 1.4, color: Colors.grey.shade600),
+                fontSize: 13,
+                height: 1.4,
+                color: Colors.grey.shade600,
+              ),
             ),
+
           const SizedBox(height: 10),
           Text(
             'Generated by a local model from your saved profile and this '
             'product\u2019s data. Informational only, not medical advice.',
             style: TextStyle(
-                fontSize: 11,
-                fontStyle: FontStyle.italic,
-                color: Colors.grey.shade500),
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey.shade500,
+            ),
           ),
         ],
       ),

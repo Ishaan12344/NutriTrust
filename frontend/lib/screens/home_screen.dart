@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 
@@ -11,8 +12,10 @@ import '../widgets/ai_summary.dart';
 import '../widgets/nutrient_bar.dart';
 import '../widgets/personalized_insights.dart';
 import '../widgets/score_ring.dart';
+import '../widgets/additive_card.dart';
 import 'barcode_scanner_screen.dart';
 import 'personal_health_input_screen.dart';
+import 'tracker_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.profile, this.username});
@@ -145,7 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
             : _contentTypeFor(ingredientsName),
         username: widget.username,
       );
-      if (mounted) setState(() => _analysis = response);
+      if (!mounted) return;
+      setState(() => _analysis = response);
+      unawaited(_trackAnalysis(response));
     } on NutriTrustApiException catch (error) {
       developer.log('label UI error', name: 'nutritrust.ui', error: error);
       if (mounted) setState(() => _error = error.message);
@@ -216,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
         barcode,
         username: widget.username,
       );
-      if (mounted) setState(() => _analysis = response);
+      if (!mounted) return;
+      setState(() => _analysis = response);
+      unawaited(_trackAnalysis(response));
     } on NutriTrustApiException catch (error) {
       developer.log('barcode UI error', name: 'nutritrust.ui', error: error);
       if (mounted) setState(() => _error = error.message);
@@ -232,6 +239,123 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _openTracker() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrackerScreen(username: widget.username),
+      ),
+    );
+  }
+
+  Map<String, dynamic> _mapValue(Object? value) =>
+      value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+
+  List<String> _textList(Object? value) => value is Iterable
+      ? value
+          .map((item) => item.toString())
+          .where((item) => item.trim().isNotEmpty)
+          .toList()
+      : <String>[];
+
+  Map<String, double> _nutritionValues(Map<String, dynamic> source) {
+    final values = <String, double>{};
+    for (final entry in source.entries) {
+      final raw = entry.value;
+      final value = raw is Map ? raw['value'] : raw;
+      if (value is num) values[entry.key] = value.toDouble();
+    }
+    return values;
+  }
+
+  String _localDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  Map<String, dynamic> _trackerPayload(
+    Map<String, dynamic> response, {
+    String? manualName,
+  }) {
+    final analysis = _mapValue(response['product_analysis']);
+    final product = _mapValue(analysis['product']);
+    final nutrition = _mapValue(analysis['nutrition']);
+    final serving = _mapValue(nutrition['per_serving']);
+    final per100 = _mapValue(nutrition['per_100g']);
+    final useServing = serving.isNotEmpty;
+    final allergens = _mapValue(analysis['allergens']);
+    final classification = _mapValue(analysis['classification']);
+    final nutriScore = _mapValue(analysis['nutri_score']);
+    final scores = _mapValue(_mapValue(analysis['scoring'])['scores']);
+    final grade = nutriScore['grade'] ?? classification['nutriscore_grade'];
+
+    return {
+      'username': widget.username,
+      'date': _localDate(DateTime.now()),
+      'name': manualName ?? product['name'],
+      'brand': product['brands'] ?? product['brand'],
+      'barcode': product['barcode'] ?? response['barcode'],
+      'image_url': product['image_front_url'],
+      'source': manualName != null ? 'manual_name' : 'scan',
+      'manual_name': manualName != null,
+      'nutrition': _nutritionValues(useServing ? serving : per100),
+      'nutrition_basis': useServing ? 'per_serving' : 'per_100g',
+      'allergens': [
+        ..._textList(allergens['declared']),
+        ..._textList(allergens['open_food_facts_tags']),
+      ],
+      'additives': _textList(classification['additives_tags']),
+      'nutri_grade': grade,
+      'health_score': scores['overall'],
+    };
+  }
+
+  Future<void> _trackAnalysis(Map<String, dynamic> response) async {
+    final product = _mapValue(_mapValue(response['product_analysis'])['product']);
+    final scannedName = product['name']?.toString().trim() ?? '';
+    String? manualName;
+    if (scannedName.isEmpty) {
+      if (!mounted) return;
+      manualName = await showProductNameDialog(
+        context,
+        title: 'What did you scan?',
+        message:
+            'We could not read the product name. Add it so your tracker and '
+            'nutrition totals stay clear.',
+        allowSkip: true,
+      );
+    }
+
+    try {
+      final result = await _api.addTrackerItem(
+        _trackerPayload(response, manualName: manualName),
+      );
+      if (!mounted) return;
+      final item = _mapValue(result['item']);
+      final name = item['name']?.toString() ?? manualName ?? 'Item';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name added to Tracker'),
+          action: SnackBarAction(label: 'View', onPressed: _openTracker),
+        ),
+      );
+    } on NutriTrustApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Scanned, but could not add to Tracker: ${error.message}'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Scanned, but could not add to Tracker.'),
+        ),
+      );
     }
   }
 
@@ -252,6 +376,24 @@ class _HomeScreenState extends State<HomeScreen> {
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
+                tooltip: 'Open tracker',
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.restaurant_menu_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                onPressed: _openTracker,
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: 'Health profile',
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -721,7 +863,7 @@ class NutritionReport extends StatelessWidget {
               'Fiber',
               serving['fiber'],
               per100['fiber'],
-              dv['fiber'],
+              dv['dietary_fiber'],
               false,
             ),
             _nutrientBar(
@@ -818,7 +960,7 @@ class NutritionReport extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -930,10 +1072,10 @@ class NutritionReport extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1309,8 +1451,14 @@ class NutritionReport extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1329,7 +1477,7 @@ class NutritionReport extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
                 ),
@@ -1520,12 +1668,10 @@ class NutritionReport extends StatelessWidget {
               ...additiveItems.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    _additiveLine(Map<String, dynamic>.from(item)),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textMedium,
-                    ),
+                  child: AdditiveCard(
+                    code: item['identified_as']?.toString() ?? '',
+                    name: item['name']?.toString().trim() ?? '',
+                    note: (() { final n = item['notes'] as List?; return (n != null && n.isNotEmpty) ? n.first.toString().trim() : ''; })(),
                   ),
                 ),
               )
@@ -1617,8 +1763,14 @@ class NutritionReport extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1628,7 +1780,7 @@ class NutritionReport extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -1637,7 +1789,7 @@ class NutritionReport extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
                 ),

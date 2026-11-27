@@ -29,8 +29,8 @@ class NutriTrustApiService {
 
   static MediaType _imageMediaType(String contentType) =>
       contentType == 'image/png'
-          ? MediaType('image', 'png')
-          : MediaType('image', 'jpeg');
+      ? MediaType('image', 'png')
+      : MediaType('image', 'jpeg');
 
   static String _resolveBaseUrl(String? configuredUrl) {
     final configured =
@@ -74,9 +74,9 @@ class NutriTrustApiService {
     if (username != null && username.trim().isNotEmpty) {
       queryParams['username'] = username.trim();
     }
-    final uri = Uri.parse('$_baseUrl/api/v1/ocr').replace(
-      queryParameters: queryParams.isEmpty ? null : queryParams,
-    );
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/ocr',
+    ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
         http.MultipartFile.fromBytes(
@@ -113,22 +113,40 @@ class NutriTrustApiService {
       );
       return _parseAnalysisResponse(response);
     } on TimeoutException catch (error, stackTrace) {
-      developer.log('label request timeout', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'label request timeout',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       throw const NutriTrustApiException(
         'The analysis request timed out. Please retry.',
       );
     } on http.ClientException catch (error, stackTrace) {
-      developer.log('label network failure', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'label network failure',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       throw const NutriTrustApiException(
         'Could not connect to the NutriTrust backend. Check the API address and connection.',
       );
     } catch (error, stackTrace) {
-      developer.log('label request failure', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'label request failure',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> analyzeBarcode(String barcode, {String? username}) async {
+  Future<Map<String, dynamic>> analyzeBarcode(
+    String barcode, {
+    String? username,
+  }) async {
     final normalizedBarcode = barcode.trim();
     if (!RegExp(r'^\d{6,14}$').hasMatch(normalizedBarcode)) {
       throw const NutriTrustApiException(
@@ -141,16 +159,20 @@ class NutriTrustApiService {
     }
     final uri = Uri.parse(
       '$_baseUrl/api/v1/open-food-facts/${Uri.encodeComponent(normalizedBarcode)}',
-    ).replace(
-      queryParameters: queryParams.isEmpty ? null : queryParams,
-    );
+    ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
     try {
-      developer.log('barcode request start: GET $uri barcode=$normalizedBarcode', name: 'nutritrust.api');
+      developer.log(
+        'barcode request start: GET $uri barcode=$normalizedBarcode',
+        name: 'nutritrust.api',
+      );
       final response = await _client
           .get(uri)
           .timeout(const Duration(seconds: 20));
-      developer.log('barcode response: ${response.statusCode} bytes=${response.bodyBytes.length}', name: 'nutritrust.api');
+      developer.log(
+        'barcode response: ${response.statusCode} bytes=${response.bodyBytes.length}',
+        name: 'nutritrust.api',
+      );
       final body = _decodeResponse(response);
       if (body['success'] != true) {
         throw const NutriTrustApiException(
@@ -167,19 +189,37 @@ class NutriTrustApiService {
           'The backend response is missing product data. Please retry.',
         );
       }
-      return _barcodeResponse(body, Map<String, dynamic>.from(body['data'] as Map));
+      return _barcodeResponse(
+        body,
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
     } on TimeoutException catch (error, stackTrace) {
-      developer.log('barcode request timeout', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'barcode request timeout',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       throw const NutriTrustApiException(
         'The product lookup timed out. Please retry.',
       );
     } on http.ClientException catch (error, stackTrace) {
-      developer.log('barcode network failure', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'barcode network failure',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       throw const NutriTrustApiException(
         'Could not connect to the NutriTrust backend. Check the API address and connection.',
       );
     } catch (error, stackTrace) {
-      developer.log('barcode request failure', name: 'nutritrust.api', error: error, stackTrace: stackTrace);
+      developer.log(
+        'barcode request failure',
+        name: 'nutritrust.api',
+        error: error,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -210,7 +250,10 @@ class NutriTrustApiService {
       );
     }
     final body = Map<String, dynamic>.from(decoded);
-    developer.log('response parsed: success=${body['success']} keys=${body.keys.join(',')}', name: 'nutritrust.api');
+    developer.log(
+      'response parsed: success=${body['success']} keys=${body.keys.join(',')}',
+      name: 'nutritrust.api',
+    );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = body['detail'];
       throw NutriTrustApiException(
@@ -255,19 +298,28 @@ class NutriTrustApiService {
           'open_food_facts_tags': data['allergens_tags'] ?? <dynamic>[],
           'traces_declaration': data['traces'],
           'traces_tags': data['traces_tags'] ?? <dynamic>[],
-          'status': data['allergens'] == null ? 'unknown' : 'information_available_review_required',
+          'status': data['allergens'] == null
+              ? 'unknown'
+              : 'information_available_review_required',
         },
-        'nutrition': {'per_100g': nutrition, 'per_serving': servingNutrition, 'conflicts': []},
+        'nutrition': {
+          'per_100g': nutrition,
+          'per_serving': servingNutrition,
+          'conflicts': [],
+        },
         'classification': {
           'nova_group': data['nova_group'],
           'nutriscore_grade': data['nutriscore_grade'],
           'nutriscore': {
             'reported_grade': data['nutriscore_grade'],
-            'source': data['nutriscore_grade'] == null ? null : 'open_food_facts',
-          'reported_algorithm_version': data['nutriscore_version'],
+            'source': data['nutriscore_grade'] == null
+                ? null
+                : 'open_food_facts',
+            'reported_algorithm_version': data['nutriscore_version'],
             'calculated_status': 'not_calculated',
             'algorithm_version': null,
-            'note': 'The NutriTrust component score is not an official Nutri-Score calculation.',
+            'note':
+                'The NutriTrust component score is not an official Nutri-Score calculation.',
           },
           'environmental_score_grade': data['environmental_score_grade'],
           'additives_count': data['additives_count'],
@@ -279,11 +331,15 @@ class NutriTrustApiService {
           'barcode': 'open_food_facts',
           'ingredients': 'open_food_facts',
           'nutrition_per_100g': 'open_food_facts',
-          'nutrition_per_serving': servingNutrition.isEmpty ? null : 'open_food_facts',
+          'nutrition_per_serving': servingNutrition.isEmpty
+              ? null
+              : 'open_food_facts',
         },
         'open_food_facts': data,
         'scoring': body['scoring'],
-        'warnings': data['found'] == false ? [data['message'] ?? 'Product not found.'] : <dynamic>[],
+        'warnings': data['found'] == false
+            ? [data['message'] ?? 'Product not found.']
+            : <dynamic>[],
       },
     };
   }
@@ -315,7 +371,10 @@ class NutriTrustApiService {
           )
           .timeout(const Duration(seconds: 180));
       final body = _decodeResponse(result);
-      developer.log('summary response: status=${body['status']}', name: 'nutritrust.api');
+      developer.log(
+        'summary response: status=${body['status']}',
+        name: 'nutritrust.api',
+      );
       return body;
     } on TimeoutException {
       throw const NutriTrustApiException(
@@ -336,9 +395,124 @@ class NutriTrustApiService {
         : <String, dynamic>{};
     final off = analysis['open_food_facts'];
     if (off is Map) {
-      analysis['open_food_facts'] = Map<String, dynamic>.from(off)..remove('data');
+      analysis['open_food_facts'] = Map<String, dynamic>.from(off)
+        ..remove('data');
     }
     return analysis;
+  }
+
+  Future<Map<String, dynamic>> fetchTracker({
+    String? username,
+    String period = 'daily',
+    String? date,
+  }) async {
+    final query = <String, String>{
+      'period': period,
+      if (username != null && username.trim().isNotEmpty)
+        'username': username.trim(),
+      if (date != null && date.isNotEmpty) 'date': date,
+    };
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/tracker',
+    ).replace(queryParameters: query);
+    try {
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'The tracker took too long to load. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> addTrackerItem(Map<String, dynamic> item) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/tracker/items');
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(item),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'Adding this item to the tracker timed out. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> updateTrackerItem(
+    String itemId, {
+    String? username,
+    String? status,
+    String? name,
+  }) async {
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/tracker/items/${Uri.encodeComponent(itemId)}',
+    );
+    final payload = <String, dynamic>{};
+    if (username != null && username.trim().isNotEmpty) {
+      payload['username'] = username.trim();
+    }
+    if (status != null) payload['status'] = status;
+    if (name != null) payload['name'] = name;
+    try {
+      final response = await _client
+          .patch(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'Updating the item timed out. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteTrackerItem(
+    String itemId, {
+    String? username,
+  }) async {
+    final query = <String, String>{
+      if (username != null && username.trim().isNotEmpty)
+        'username': username.trim(),
+    };
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/tracker/items/${Uri.encodeComponent(itemId)}',
+    ).replace(queryParameters: query.isEmpty ? null : query);
+    try {
+      final response = await _client
+          .delete(uri)
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } on TimeoutException {
+      throw const NutriTrustApiException(
+        'Removing the item timed out. Please retry.',
+      );
+    } on http.ClientException {
+      throw const NutriTrustApiException(
+        'Could not connect to the NutriTrust backend.',
+      );
+    }
   }
 
   Future<Map<String, dynamic>> register({
@@ -362,9 +536,13 @@ class NutriTrustApiService {
           .timeout(const Duration(seconds: 15));
       return _decodeResponse(response);
     } on TimeoutException {
-      throw const NutriTrustApiException('The registration request timed out. Please retry.');
+      throw const NutriTrustApiException(
+        'The registration request timed out. Please retry.',
+      );
     } on http.ClientException {
-      throw const NutriTrustApiException('Could not connect to the server. Check your connection.');
+      throw const NutriTrustApiException(
+        'Could not connect to the server. Check your connection.',
+      );
     }
   }
 
@@ -373,10 +551,7 @@ class NutriTrustApiService {
     required String password,
   }) async {
     final uri = Uri.parse('$_baseUrl/api/v1/auth/login');
-    final payload = {
-      'username': username.trim(),
-      'password': password,
-    };
+    final payload = {'username': username.trim(), 'password': password};
     try {
       final response = await _client
           .post(
@@ -387,22 +562,28 @@ class NutriTrustApiService {
           .timeout(const Duration(seconds: 15));
       return _decodeResponse(response);
     } on TimeoutException {
-      throw const NutriTrustApiException('The login request timed out. Please retry.');
+      throw const NutriTrustApiException(
+        'The login request timed out. Please retry.',
+      );
     } on http.ClientException {
-      throw const NutriTrustApiException('Could not connect to the server. Check your connection.');
+      throw const NutriTrustApiException(
+        'Could not connect to the server. Check your connection.',
+      );
     }
   }
 
   Future<HealthProfile> getProfile(String username) async {
-    final uri = Uri.parse('$_baseUrl/api/v1/user/profile').replace(
-      queryParameters: {'username': username.trim()},
-    );
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/user/profile',
+    ).replace(queryParameters: {'username': username.trim()});
     try {
       final response = await _client
           .get(uri)
           .timeout(const Duration(seconds: 15));
       final body = _decodeResponse(response);
-      final rawProfile = body['profile'] is Map ? Map<String, dynamic>.from(body['profile'] as Map) : <String, dynamic>{};
+      final rawProfile = body['profile'] is Map
+          ? Map<String, dynamic>.from(body['profile'] as Map)
+          : <String, dynamic>{};
       return HealthProfile.fromJson(rawProfile);
     } on TimeoutException {
       throw const NutriTrustApiException('Request timed out fetching profile.');
@@ -411,12 +592,12 @@ class NutriTrustApiService {
     }
   }
 
-  Future<HealthProfile> updateProfile(String username, HealthProfile profile) async {
+  Future<HealthProfile> updateProfile(
+    String username,
+    HealthProfile profile,
+  ) async {
     final uri = Uri.parse('$_baseUrl/api/v1/user/profile');
-    final payload = {
-      'username': username.trim(),
-      ...profile.toJson(),
-    };
+    final payload = {'username': username.trim(), ...profile.toJson()};
     try {
       final response = await _client
           .put(
@@ -426,7 +607,9 @@ class NutriTrustApiService {
           )
           .timeout(const Duration(seconds: 15));
       final body = _decodeResponse(response);
-      final rawProfile = body['profile'] is Map ? Map<String, dynamic>.from(body['profile'] as Map) : <String, dynamic>{};
+      final rawProfile = body['profile'] is Map
+          ? Map<String, dynamic>.from(body['profile'] as Map)
+          : <String, dynamic>{};
       return HealthProfile.fromJson(rawProfile);
     } on TimeoutException {
       throw const NutriTrustApiException('Request timed out updating profile.');

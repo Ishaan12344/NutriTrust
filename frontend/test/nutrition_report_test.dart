@@ -553,4 +553,30 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets('empty nutrition section renders unavailable fallback', (tester) async {
+    final response = <String, dynamic>{
+      'product_analysis': {
+        'product': {'name': 'Empty Product'},
+        'nutrition': {'per_100g': {}, 'per_serving': {}},
+        'ingredients': {'text': null},
+        'allergens': {'declared': <String>[]},
+        'classification': {},
+        'scoring': {'scores': {'overall': null, 'grade': 'N/A'}},
+        'warnings': <String>[],
+      },
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: NutritionReport(response: response, api: _stubSummaryApi()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Not available in the data found for this product.'), findsWidgets);
+    expect(find.text('N/A'), findsOneWidget);
+  });
 }
