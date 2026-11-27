@@ -127,6 +127,23 @@ class NutritionNormalizerTests(unittest.TestCase):
         self.assertTrue(result["nutrition_review"])
         self.assertTrue(any("excluded from normalization" in warning for warning in result["warnings"]))
 
+    def test_sarvam_gm_units_and_per_100g_table_normalize_without_ambiguous_drop(self):
+        parsed = parse_food_label(
+            "Product Name: Choco Biscuits\n"
+            "Ingredients: Refined wheat flour, sugar\n"
+            "Nutrition Information\n"
+            "Serving size: 20 g\n"
+            "| Nutrient | Per serving | Per 100 gm |\n"
+            "| --- | --- | --- |\n"
+            "| Total Sugars | 4.8 gm | 24 gm |\n"
+            "| Protein | 1.4 gm | 7 gm |\n"
+        )
+        norm = normalize_nutrition(parsed)
+        self.assertEqual(norm["reference_basis"]["detected"], "per_100g")
+        self.assertEqual(norm["per_100g"]["sugar"], 24.0)
+        self.assertEqual(norm["per_100g"]["protein"], 7.0)
+        self.assertEqual(norm["per_serving"]["sugar"], 4.8)
+
 
 if __name__ == "__main__":
     unittest.main()

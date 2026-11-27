@@ -61,6 +61,17 @@ class TrackerItemTests(unittest.TestCase):
         self.assertFalse(doc["needs_name"])
         self.assertFalse(doc["partial_data"])
 
+    def test_added_sugar_is_preserved_in_tracker_items(self):
+        doc = build_item_document(
+            {
+                "name": "Cereal",
+                "nutrition": {"sugar": 14, "added_sugar": 8},
+            }
+        )
+
+        self.assertEqual(doc["nutrition"]["sugar"], 14)
+        self.assertEqual(doc["nutrition"]["added_sugar"], 8)
+
 
 class TrackerSnapshotTests(unittest.TestCase):
     def test_only_eaten_items_count_and_counts_are_complete(self):
@@ -116,6 +127,120 @@ class PeriodAndTargetTests(unittest.TestCase):
         self.assertEqual(targets["protein"], 56.0)
         male = daily_targets({"gender": "male", "weight": 70})
         self.assertEqual(male["iron"], 8.0)
+
+    def test_energy_and_macros_use_profile_based_adult_estimate(self):
+        targets = daily_targets({"age": 35, "gender": "male", "weight": 70})
+        expected_energy = (11.472 * 70 + 873.1) * 1.4
+
+        self.assertAlmostEqual(targets["energy_kcal"], expected_energy, places=1)
+        self.assertAlmostEqual(targets["protein"], 56.0)
+        self.assertAlmostEqual(targets["total_carbohydrate"], expected_energy * 0.60 / 4, places=1)
+        self.assertAlmostEqual(targets["total_fat"], expected_energy * 0.30 / 9, places=1)
+        self.assertAlmostEqual(targets["saturated_fat"], expected_energy * 0.10 / 9, places=1)
+        self.assertAlmostEqual(targets["added_sugar"], expected_energy * 0.10 / 4, places=1)
+        self.assertEqual(targets["sodium"], 2000.0)
+        self.assertEqual(targets["potassium"], 3510.0)
+
+    def test_micronutrient_targets_follow_adult_age_and_gender_groups(self):
+        younger_woman = daily_targets({"age": 40, "gender": "female", "weight": 60})
+        older_woman = daily_targets({"age": 55, "gender": "female", "weight": 60})
+        older_man = daily_targets({"age": 72, "gender": "male", "weight": 70})
+
+        self.assertEqual((younger_woman["calcium"], younger_woman["iron"]), (1000.0, 18.0))
+        self.assertEqual((older_woman["calcium"], older_woman["iron"]), (1200.0, 8.0))
+        self.assertEqual((older_man["calcium"], older_man["iron"]), (1200.0, 8.0))
+
+    def test_unspecified_gender_uses_midpoint_energy_and_higher_iron_reference(self):
+        unknown = daily_targets({"age": 35, "gender": "other", "weight": 70})
+        male = daily_targets({"age": 35, "gender": "male", "weight": 70})
+        female = daily_targets({"age": 35, "gender": "female", "weight": 70})
+
+        self.assertAlmostEqual(
+            unknown["energy_kcal"],
+            (male["energy_kcal"] + female["energy_kcal"]) / 2,
+            places=1,
+        )
+        self.assertEqual(unknown["iron"], 18.0)
+
+    def test_non_finite_profile_weight_uses_general_adult_fallback(self):
+        targets = daily_targets({"age": 35, "gender": "male", "weight": float("nan")})
+
+        self.assertEqual(targets["energy_kcal"], 2000.0)
+        self.assertEqual(targets["protein"], 50.0)
+
+    def test_adult_targets_are_not_applied_to_people_under_19(self):
+        snapshot = build_snapshot(
+            [item("Snack", "eaten", {"energy_kcal": 100, "protein": 2})],
+            {"age": 16, "gender": "female", "weight": 55},
+            "daily",
+            date(2026, 11, 27),
+        )
+
+        self.assertFalse(snapshot["targets_available"])
+        self.assertEqual(snapshot["targets"], {})
+        self.assertEqual(snapshot["percentages"], {})
+        self.assertEqual(snapshot["recommendations"][0]["title"], "Adult targets unavailable")
+
+    def test_kidney_condition_hides_protein_and_potassium_targets(self):
+        snapshot = build_snapshot(
+            [item("Meal", "eaten", {"energy_kcal": 300, "protein": 15, "potassium": 400})],
+            {
+                "age": 35,
+                "gender": "male",
+                "weight": 70,
+                "conditions": ["Chronic kidney disease"],
+            },
+            "daily",
+            date(2026, 11, 27),
+        )
+
+        self.assertNotIn("protein", snapshot["targets"])
+        self.assertNotIn("potassium", snapshot["targets"])
+        self.assertIn("potassium goals are hidden", snapshot["target_note"])
+        self.assertNotIn(
+            "Protein is running low",
+            [recommendation["title"] for recommendation in snapshot["recommendations"]],
+        )
+
+    def test_added_sugar_is_tracked_separately_from_total_sugar(self):
+        snapshot = build_snapshot(
+            [
+                item(
+                    "Cereal",
+                    "eaten",
+                    {"energy_kcal": 200, "protein": 5, "sugar": 14, "added_sugar": 8},
+                )
+            ],
+            {"age": 35, "gender": "female", "weight": 60},
+            "daily",
+            date(2026, 11, 27),
+        )
+
+        self.assertEqual(snapshot["totals"]["sugar"], 14)
+        self.assertEqual(snapshot["totals"]["added_sugar"], 8)
+        self.assertEqual(snapshot["nutrient_report_counts"]["added_sugar"], 1)
+        self.assertNotIn("sugar", snapshot["period_targets"])
+        self.assertNotIn(
+            "Added sugar is at its limit",
+            [recommendation["title"] for recommendation in snapshot["recommendations"]],
+        )
+
+        high_added_sugar = build_snapshot(
+            [
+                item(
+                    "Sweet drink",
+                    "eaten",
+                    {"energy_kcal": 100, "protein": 0, "sugar": 60, "added_sugar": 60},
+                )
+            ],
+            {"age": 35, "gender": "female", "weight": 60},
+            "daily",
+            date(2026, 11, 27),
+        )
+        self.assertIn(
+            "Added sugar is at its limit",
+            [recommendation["title"] for recommendation in high_added_sugar["recommendations"]],
+        )
 
 
 class TrackerDeletionTests(unittest.TestCase):

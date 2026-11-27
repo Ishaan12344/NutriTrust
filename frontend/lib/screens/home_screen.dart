@@ -862,7 +862,7 @@ class NutritionReport extends StatelessWidget {
               'Fiber',
               serving['fiber'],
               per100['fiber'],
-              dv['fiber'],
+              dv['dietary_fiber'],
               false,
             ),
             _nutrientBar(

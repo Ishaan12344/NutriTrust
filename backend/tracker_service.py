@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ _NUTRIENTS = (
     "total_fat",
     "saturated_fat",
     "sugar",
+    "added_sugar",
     "fiber",
     "sodium",
     "calcium",
@@ -66,6 +68,18 @@ def _parse_date(value: Any) -> date:
         except ValueError:
             pass
     return datetime.now(timezone.utc).date()
+
+
+def _has_kidney_condition(profile: Mapping[str, Any] | None) -> bool:
+    conditions = (profile or {}).get("conditions") or []
+    if isinstance(conditions, str):
+        conditions = [conditions]
+    elif not isinstance(conditions, (list, tuple, set)):
+        return False
+    return any(
+        "kidney" in str(condition).lower() or "renal" in str(condition).lower()
+        for condition in conditions
+    )
 
 
 def _clean_username(username: Any) -> str:
@@ -276,35 +290,126 @@ def period_range(period: str, anchor: date) -> tuple[date, date]:
 
 
 def daily_targets(profile: Mapping[str, Any] | None) -> dict[str, float]:
-    """Simple, transparent adult targets derived from the saved profile."""
+    """Return general adult targets, or no targets for profiles under age 19."""
     profile = profile or {}
     gender = str(profile.get("gender") or "").lower()
+    raw_weight = profile.get("weight")
     try:
-        weight = float(profile.get("weight")) if profile.get("weight") is not None else None
-    except (TypeError, ValueError):
+        weight = float(raw_weight) if raw_weight is not None else None
+        if weight is not None and (not math.isfinite(weight) or weight <= 0):
+            weight = None
+    except (TypeError, ValueError, OverflowError):
         weight = None
+    raw_age = profile.get("age")
     try:
-        age = int(profile.get("age")) if profile.get("age") is not None else None
-    except (TypeError, ValueError):
+        age = int(raw_age) if raw_age is not None else None
+    except (TypeError, ValueError, OverflowError):
         age = None
 
-    energy = 2400.0 if gender.startswith("m") else 2000.0
-    if age is not None and age >= 60:
-        energy -= 150.0
-    protein = max(45.0, (weight or 62.0) * 0.8)
-    return {
-        "energy_kcal": energy,
+    if age is not None and age < 19:
+        return {}
+
+    energy = 2000.0
+    protein = weight * 0.8 if weight is not None else 50.0
+    if age is not None and weight is not None:
+        if gender.startswith("m"):
+            if age < 30:
+                bmr = 15.057 * weight + 692.2
+            elif age < 60:
+                bmr = 11.472 * weight + 873.1
+            else:
+                bmr = 11.711 * weight + 587.7
+        elif gender.startswith("f"):
+            if age < 30:
+                bmr = 14.818 * weight + 486.6
+            elif age < 60:
+                bmr = 8.126 * weight + 845.6
+            else:
+                bmr = 9.082 * weight + 658.5
+        else:
+            if age < 30:
+                bmr = ((15.057 * weight + 692.2) + (14.818 * weight + 486.6)) / 2
+            elif age < 60:
+                bmr = ((11.472 * weight + 873.1) + (8.126 * weight + 845.6)) / 2
+            else:
+                bmr = ((11.711 * weight + 587.7) + (9.082 * weight + 658.5)) / 2
+        energy = bmr * 1.4
+
+    calcium = (
+        1200.0
+        if (gender.startswith("f") and age is not None and age >= 51)
+        or (gender.startswith("m") and age is not None and age >= 71)
+        or (not gender.startswith(("f", "m")) and age is not None and age >= 51)
+        else 1000.0
+    )
+    iron = 8.0 if gender.startswith("m") or (age is not None and age > 50) else 18.0
+    targets = {
+        "energy_kcal": round(energy, 1),
         "protein": round(protein, 1),
-        "total_carbohydrate": 275.0,
-        "total_fat": 70.0,
-        "saturated_fat": 22.0,
-        "sugar": 50.0,
-        "fiber": 28.0,
-        "sodium": 2300.0,
-        "calcium": 1000.0,
-        "iron": 18.0 if gender.startswith("f") else 8.0,
-        "potassium": 3500.0,
+        "total_carbohydrate": round(energy * 0.60 / 4, 1),
+        "total_fat": round(energy * 0.30 / 9, 1),
+        "saturated_fat": round(energy * 0.10 / 9, 1),
+        "added_sugar": round(energy * 0.10 / 4, 1),
+        "fiber": 25.0,
+        "sodium": 2000.0,
+        "calcium": calcium,
+        "iron": iron,
+        "potassium": 3510.0,
     }
+    if _has_kidney_condition(profile):
+        targets.pop("protein")
+        targets.pop("potassium")
+    return targets
+
+
+def _target_note(profile: Mapping[str, Any] | None, targets_available: bool) -> str:
+    kidney_note = (
+        " A kidney-related condition is in the profile, so protein and potassium goals are "
+        "hidden; follow clinician guidance."
+        if _has_kidney_condition(profile)
+        else ""
+    )
+    if not targets_available:
+        return (
+            "Adult targets are not shown for people under 19. Nutrition needs vary "
+            "with growth; use age-specific guidance from a qualified professional."
+            + kidney_note
+        )
+
+    profile = profile or {}
+    raw_age = profile.get("age")
+    raw_weight = profile.get("weight")
+    try:
+        age = int(raw_age) if raw_age is not None else None
+        weight = float(raw_weight) if raw_weight is not None else None
+    except (TypeError, ValueError, OverflowError):
+        age = None
+        weight = None
+
+    if age is None or weight is None or not math.isfinite(weight) or weight <= 0:
+        return (
+            "General adult reference used because age or weight is missing. These "
+            "estimates are not tailored for pregnancy, lactation or medical conditions."
+            + kidney_note
+        )
+    gender = str(profile.get("gender") or "").lower()
+    if not gender.startswith(("f", "m")):
+        return (
+            "Profile-based adult estimate: Schofield BMR × an assumed inactive PAL of 1.4. "
+            "Because profile gender is not male/female, calories average the two equations "
+            "(a fallback, not a validated non-binary-specific equation), and iron uses the "
+            "higher reference through age 50. Carbohydrates use the midpoint of WHO's 45–75% "
+            "energy range; added sugar is only a label-based proxy for free sugars. Not tailored "
+            "for pregnancy, lactation or medical conditions."
+            + kidney_note
+        )
+    return (
+        "Profile-based adult estimate: Schofield BMR × an assumed inactive PAL of 1.4. "
+        "Carbohydrates use the midpoint of WHO's 45–75% energy range; added sugar is "
+        "only a label-based proxy for free sugars. Not tailored for pregnancy, "
+        "lactation or medical conditions."
+        + kidney_note
+    )
 
 
 def _empty_totals() -> dict[str, float]:
@@ -366,12 +471,12 @@ def _recommendations(
                 "message": f"You have reached {ratio('sodium') * 100:.0f}% of your sodium limit {phrase}. Skip salty snacks and check labels on sauces.",
             }
         )
-    if ratio("sugar") >= 1:
+    if ratio("added_sugar") >= 1:
         recommendations.append(
             {
                 "type": "avoid",
-                "title": "Sugar is over target",
-                "message": f"You are at {ratio('sugar') * 100:.0f}% of your sugar limit {phrase}. Choose water or unsweetened drinks for the rest of the day.",
+                "title": "Added sugar is at its limit",
+                "message": f"Recorded added sugar is at {ratio('added_sugar') * 100:.0f}% of the WHO free-sugar limit {phrase}. Labels may not report all free sugars.",
             }
         )
     if ratio("energy_kcal") >= 1.1:
@@ -390,7 +495,7 @@ def _recommendations(
                 "message": f"You have {ratio('fiber') * 100:.0f}% of your fibre goal {phrase}. A fruit, dal or whole-grain serving would close the gap.",
             }
         )
-    if ratio("protein") < 0.7:
+    if "protein" in targets and ratio("protein") < 0.7:
         recommendations.append(
             {
                 "type": "eat",
@@ -398,7 +503,7 @@ def _recommendations(
                 "message": f"You have {ratio('protein') * 100:.0f}% of your protein goal {phrase}. Add eggs, paneer, dal, tofu or lean meat to your next meal.",
             }
         )
-    if ratio("calcium") < 0.7:
+    if "calcium" in targets and ratio("calcium") < 0.7:
         recommendations.append(
             {
                 "type": "eat",
@@ -406,7 +511,7 @@ def _recommendations(
                 "message": f"You have {ratio('calcium') * 100:.0f}% of your calcium goal {phrase}. Milk, curd, tofu or a fortified drink can help.",
             }
         )
-    if ratio("iron") < 0.7:
+    if "iron" in targets and ratio("iron") < 0.7:
         recommendations.append(
             {
                 "type": "eat",
@@ -470,6 +575,7 @@ def build_snapshot(
     eaten = [item for item in in_range if item.get("status") == "eaten"]
 
     targets = daily_targets(profile)
+    targets_available = bool(targets)
     totals = _empty_totals()
     for item in eaten:
         for key in _NUTRIENTS:
@@ -521,8 +627,9 @@ def build_snapshot(
     day_count = max(1, (end - start).days + 1)
     period_targets = {key: round(value * day_count, 1) for key, value in targets.items()}
     percentages = {
-        key: round(totals[key] / period_targets[key] * 100, 1) if period_targets[key] else 0.0
-        for key in _NUTRIENTS
+        key: round(totals[key] / period_targets[key] * 100, 1)
+        for key in targets
+        if period_targets[key]
     }
 
     elapsed_end = min(end, datetime.now(timezone.utc).date())
@@ -532,12 +639,24 @@ def build_snapshot(
     partial_count = sum(1 for item in eaten if item.get("partial_data"))
     counts = _counts(in_range)
     phrase = _period_phrase(period)
-    protein_pct = percentages["protein"]
-    highlight = (
-        f"You hit {protein_pct:.0f}% of your protein goal {phrase}."
-        if eaten
-        else f"No intake marked {phrase} yet."
-    )
+    protein_pct = percentages.get("protein", 0.0)
+    if not eaten:
+        highlight = f"No intake marked {phrase} yet."
+    elif targets_available and "protein" in targets:
+        highlight = f"You hit {protein_pct:.0f}% of your protein goal {phrase}."
+    elif targets_available:
+        highlight = "Some targets are hidden because of a health condition in your profile."
+    else:
+        highlight = "Adult nutrition targets are unavailable for this profile."
+
+    nutrient_report_counts = {
+        key: sum(
+            1
+            for item in eaten
+            if isinstance(item.get("nutrition"), dict) and key in item["nutrition"]
+        )
+        for key in ("added_sugar",)
+    }
 
     return {
         "success": True,
@@ -560,8 +679,21 @@ def build_snapshot(
         "counts": counts,
         "partial_data_count": partial_count,
         "highlight": highlight,
-        "recommendations": _recommendations(totals, period_targets, period, profile, eaten, partial_count),
+        "recommendations": (
+            _recommendations(totals, period_targets, period, profile, eaten, partial_count)
+            if targets_available
+            else [
+                {
+                    "type": "info",
+                    "title": "Adult targets unavailable",
+                    "message": "Daily nutrient targets are not compared for people under 19.",
+                }
+            ]
+        ),
         "has_data": bool(in_range),
+        "targets_available": targets_available,
+        "target_note": _target_note(profile, targets_available),
+        "nutrient_report_counts": nutrient_report_counts,
     }
 
 

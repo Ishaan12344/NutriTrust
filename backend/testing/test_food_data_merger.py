@@ -66,6 +66,14 @@ class MergeTests(unittest.TestCase):
             any("Open Food Facts data was not available" in warning for warning in merged["warnings"])
         )
 
+    def test_source_values_are_preserved_when_basis_unknown(self):
+        merged = merge_product_data(
+            {"warnings": [], "allergen_analysis": {"review_required": True}},
+            {"per_100g": {}, "per_serving": {}, "source_values": {"sugar": 12.0}},
+            None,
+        )
+        self.assertEqual(merged["nutrition"]["source_values"]["sugar"], 12.0)
+
 
 if __name__ == "__main__":
     unittest.main()

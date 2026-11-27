@@ -42,11 +42,23 @@ def _positive_number(value: Any) -> float | None:
     return number
 
 
-def _detect_basis(raw_text: str) -> str:
-    """Return per_100g, per_serving, or unknown based only on explicit basis text."""
+def _detect_basis(raw_text: str, parsed: dict[str, Any] | None = None) -> str:
+    """Return per_100g, per_serving, or unknown based on explicit basis.
+
+    A table-parser-supplied ``reference_basis`` wins over scanning raw text,
+    which can contain both `per serving` and `per 100 g` headers in one table.
+    """
+    explicit = (parsed or {}).get("reference_basis")
+    if isinstance(explicit, dict):
+        detected = explicit.get("detected")
+    else:
+        detected = explicit
+    if detected in {"per_100g", "per_serving"}:
+        return detected
+
     text = (raw_text or "").lower().replace("100grams", "100 grams")
     has_100g = bool(
-        re.search(r"\bper\s*100\s*(?:g|grams?)\b|\b100\s*g\s*(?:basis|values?)\b", text)
+        re.search(r"(?:\bper\s*|/\s*)100\s*(?:gms?|g|ml|grams?)\b|\b100\s*(?:gms?|g)\s*(?:basis|values?)\b", text)
     )
     has_serving = bool(
         re.search(
@@ -71,6 +83,8 @@ def _convert_unit(value: float, source_unit: str, target_unit: str) -> float | N
         "micrograms": "mcg",
         "gram": "g",
         "grams": "g",
+        "gm": "g",
+        "gms": "g",
         "milligram": "mg",
         "milligrams": "mg",
     }.get(unit, unit)
@@ -105,7 +119,7 @@ def normalize_nutrition(parsed: dict[str, Any], basis: str = "auto") -> dict[str
         raise ValueError("basis must be 'auto', 'per_serving', or 'per_100g'")
 
     raw_text = str(parsed.get("raw_text") or "")
-    detected_basis = _detect_basis(raw_text) if basis == "auto" else basis
+    detected_basis = _detect_basis(raw_text, parsed) if basis == "auto" else basis
     serving = parsed.get("serving_size") or {}
     serving_g = (
         _positive_number(serving.get("weight_g")) if isinstance(serving, dict) else None

@@ -300,6 +300,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
             else if (snapshot != null) ...[
               if (!snapshot.hasData) _buildEmptyState(),
               if (snapshot.hasData) ...[
+                if (snapshot.targetNote.isNotEmpty) ...[
+                  _buildTargetNote(snapshot.targetNote),
+                  const SizedBox(height: 12),
+                ],
                 _buildHero(snapshot),
                 const SizedBox(height: 20),
                 _buildMicronutrients(snapshot),
@@ -382,9 +386,39 @@ class _TrackerScreenState extends State<TrackerScreen> {
     return '${_anchor.day} ${months[_anchor.month - 1]} ${_anchor.year}';
   }
 
+  Widget _buildTargetNote(String note) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: scheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              note,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHero(TrackerSnapshot snapshot) {
     final target = snapshot.calorieTarget;
-    final ratio = target > 0
+    final ratio = target != null && target > 0
         ? (snapshot.calories / target).clamp(0.0, 1.0)
         : 0.0;
     final percent = snapshot.caloriePercent;
@@ -419,15 +453,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${percent.round()}%',
+                          snapshot.targetsAvailable
+                              ? '${percent.round()}%'
+                              : '—',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const Text(
-                          'of goal',
+                        Text(
+                          snapshot.targetsAvailable ? 'of goal' : 'no target',
                           style: TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
@@ -446,7 +482,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_format(snapshot.calories)} / ${_format(target)} kcal',
+                      target == null
+                          ? '${_format(snapshot.calories)} kcal'
+                          : '${_format(snapshot.calories)} / ${_format(target)} kcal',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -471,43 +509,82 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _TargetBar(
             label: 'Protein',
             value: snapshot.totals['protein'] ?? 0,
-            target: snapshot.periodTargets['protein'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['protein']
+                : null,
             unit: 'g',
             onGradient: true,
           ),
           _TargetBar(
-            label: 'Carbs',
+            label: 'Carbs (guide)',
             value: snapshot.totals['total_carbohydrate'] ?? 0,
-            target: snapshot.periodTargets['total_carbohydrate'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['total_carbohydrate']
+                : null,
             unit: 'g',
             onGradient: true,
           ),
           _TargetBar(
-            label: 'Fat',
+            label: 'Total fat (max)',
             value: snapshot.totals['total_fat'] ?? 0,
-            target: snapshot.periodTargets['total_fat'] ?? 0,
-            unit: 'g',
-            onGradient: true,
-          ),
-          _TargetBar(
-            label: 'Fibre',
-            value: snapshot.totals['fiber'] ?? 0,
-            target: snapshot.periodTargets['fiber'] ?? 0,
-            unit: 'g',
-            onGradient: true,
-          ),
-          _TargetBar(
-            label: 'Sugar',
-            value: snapshot.totals['sugar'] ?? 0,
-            target: snapshot.periodTargets['sugar'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['total_fat']
+                : null,
             unit: 'g',
             isLimit: true,
             onGradient: true,
           ),
           _TargetBar(
+            label: 'Saturated fat (max)',
+            value: snapshot.totals['saturated_fat'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['saturated_fat']
+                : null,
+            unit: 'g',
+            isLimit: true,
+            onGradient: true,
+          ),
+          _TargetBar(
+            label: 'Fibre',
+            value: snapshot.totals['fiber'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['fiber']
+                : null,
+            unit: 'g',
+            onGradient: true,
+          ),
+          _TargetBar(
+            label: 'Added sugar (max)',
+            value: snapshot.totals['added_sugar'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['added_sugar']
+                : null,
+            unit: 'g',
+            isLimit: true,
+            onGradient: true,
+          ),
+          _TargetBar(
+            label: 'Total sugar (not compared to free-sugar limit)',
+            value: snapshot.totals['sugar'] ?? 0,
+            target: null,
+            unit: 'g',
+            onGradient: true,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 4),
+            child: Text(
+              'Added sugar reported for '
+              '${snapshot.nutrientReportCounts['added_sugar'] ?? 0} of '
+              '${snapshot.eatenCount} eaten items; only reported values are compared.',
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ),
+          _TargetBar(
             label: 'Sodium',
             value: snapshot.totals['sodium'] ?? 0,
-            target: snapshot.periodTargets['sodium'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['sodium']
+                : null,
             unit: 'mg',
             isLimit: true,
             onGradient: true,
@@ -542,19 +619,25 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _TargetBar(
             label: 'Calcium',
             value: snapshot.totals['calcium'] ?? 0,
-            target: snapshot.periodTargets['calcium'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['calcium']
+                : null,
             unit: 'mg',
           ),
           _TargetBar(
             label: 'Iron',
             value: snapshot.totals['iron'] ?? 0,
-            target: snapshot.periodTargets['iron'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['iron']
+                : null,
             unit: 'mg',
           ),
           _TargetBar(
             label: 'Potassium',
             value: snapshot.totals['potassium'] ?? 0,
-            target: snapshot.periodTargets['potassium'] ?? 0,
+            target: snapshot.targetsAvailable
+                ? snapshot.periodTargets['potassium']
+                : null,
             unit: 'mg',
           ),
         ],
@@ -765,17 +848,20 @@ class _TargetBar extends StatelessWidget {
 
   final String label;
   final double value;
-  final double target;
+  final double? target;
   final String unit;
   final bool isLimit;
   final bool onGradient;
 
   @override
   Widget build(BuildContext context) {
-    final percent = target > 0 ? value / target * 100 : 0.0;
+    final hasTarget = target != null && target! > 0;
+    final percent = hasTarget ? value / target! * 100 : 0.0;
     final scheme = Theme.of(context).colorScheme;
     final Color color;
-    if (isLimit) {
+    if (!hasTarget) {
+      color = onGradient ? Colors.white70 : scheme.outline;
+    } else if (isLimit) {
       if (percent >= 100) {
         color = onGradient ? const Color(0xFFFFB4A2) : AppTheme.trafficRed;
       } else if (percent >= 80) {
@@ -793,7 +879,9 @@ class _TargetBar extends StatelessWidget {
     final labelColor = onGradient ? Colors.white70 : scheme.onSurfaceVariant;
     final valueColor = onGradient ? Colors.white : scheme.onSurface;
     return Semantics(
-      label: '$label ${_format(value)} of ${_format(target)} $unit',
+      label: hasTarget
+          ? '$label ${_format(value)} of ${_format(target!)} $unit'
+          : '$label ${_format(value)} $unit; target unavailable',
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Column(
@@ -808,7 +896,9 @@ class _TargetBar extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${_format(value)} / ${_format(target)} $unit',
+                  hasTarget
+                      ? '${_format(value)} / ${_format(target!)} $unit'
+                      : '${_format(value)} $unit',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -817,18 +907,20 @@ class _TargetBar extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: (percent / 100).clamp(0.0, 1.0),
-                minHeight: 6,
-                backgroundColor: onGradient
-                    ? Colors.white24
-                    : scheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+            if (hasTarget) ...[
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (percent / 100).clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: onGradient
+                      ? Colors.white24
+                      : scheme.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

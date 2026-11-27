@@ -4,9 +4,10 @@ import zipfile
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import requests
 from PIL import Image
 
-from sarvam_ocr import _parse_json_text, _prepare_image, extract_text_from_image
+from sarvam_ocr import _parse_json_text, _prepare_image, _with_retry, extract_text_from_image
 
 
 class SarvamOcrHelpersTests(unittest.TestCase):
@@ -24,6 +25,22 @@ class SarvamOcrHelpersTests(unittest.TestCase):
             self.assertEqual(image.format, "JPEG")
             self.assertEqual(max(image.size), 2400)
 
+    def test_transient_network_failure_is_retried_with_backoff(self):
+        calls = []
+
+        def flaky():
+            calls.append(1)
+            if len(calls) < 3:
+                raise requests.RequestException("transient")
+            return "ok"
+
+        with patch("sarvam_ocr.time.sleep") as sleep:
+            result = _with_retry(flaky)
+
+        self.assertEqual(result, "ok")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.5, 1.0])
+
     def test_json_blocks_are_flattened_to_text(self):
         text = _parse_json_text(
             '{"blocks": [{"text": "Ingredients: oats"}, {"text": "Protein 4 g"}]}'
@@ -39,7 +56,7 @@ class SarvamOcrHelpersTests(unittest.TestCase):
             output.writestr("document.md", "Ingredients: oats")
 
         doc_ai = SimpleNamespace(
-            parse=Mock(return_value=SimpleNamespace(job_id="job-123")),
+            digitise=Mock(return_value=SimpleNamespace(job_id="job-123")),
             get_status=Mock(return_value=SimpleNamespace(status="completed")),
             get_download_url=Mock(
                 return_value=SimpleNamespace(
@@ -71,8 +88,8 @@ class SarvamOcrHelpersTests(unittest.TestCase):
             )
 
         self.assertEqual(result["text"], "Ingredients: oats")
-        doc_ai.parse.assert_called_once()
-        self.assertEqual(doc_ai.parse.call_args.kwargs["language"], "en-IN")
+        doc_ai.digitise.assert_called_once()
+        self.assertEqual(doc_ai.digitise.call_args.kwargs["language"], "en-IN")
         request.assert_called_once_with(
             method="GET",
             url="https://example.test/ocr.zip",

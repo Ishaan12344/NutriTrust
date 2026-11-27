@@ -18,16 +18,17 @@ _ADDITIVE_NAMES = {
 
 # Canonical nutrient names are kept compatible with the existing API.
 NUTRIENT_PATTERNS = {
-    "monounsaturated_fat": r"\bmonounsaturated\s+fat\b",
-    "polyunsaturated_fat": r"\bpolyunsaturated\s+fat\b",
-    "total_fat": r"\btotal\s+fat\b",
-    "saturated_fat": r"\bsaturated\s+fat\b",
-    "trans_fat": r"\btrans\s+fat\b",
+    "monounsaturated_fat": r"\bmonounsaturated\s+fat(?:ty\s+acids?)?\b",
+    "polyunsaturated_fat": r"\bpolyunsaturated\s+fat(?:ty\s+acids?)?\b",
+    "total_fat": r"\btotal\s+fat\b|(?<!saturated\s)(?<!trans\s)(?<!monounsaturated\s)(?<!polyunsaturated\s)\bfat\b",
+    "saturated_fat": r"\bsaturated\s+fat(?:ty\s+acids?)?\b|\bsat\.?\s+fat\b|\bsaturates\b",
+    "trans_fat": r"\btrans[\s\-]+fat(?:ty\s+acids?)?\b",
     "cholesterol": r"\bcholesterol\b",
     "sodium": r"\bsodium\b",
-    "total_carbohydrate": r"\btotal\s+carbohydrate\b|\btotal\s+carbs?\b",
+    # Indian labels often print bare "Carbohydrate" rather than "Total Carbohydrate".
+    "total_carbohydrate": r"\btotal\s+carbohydrates?\b|\btotal\s+carbs?\b|\bcarbohydrates?\b|\bcarbs?\b",
     "dietary_fiber": r"\bdietary\s+fiber\b|\bdietary\s+fibre\b|\bfibre\b|\bfiber\b",
-    "total_sugars": r"\btotal\s+sugars?\b|\bsugars?\b",
+    "total_sugars": r"\btotal\s+sugars?\b|\bof\s+which\s+sugars?\b|\bsugars?\b",
     "added_sugars": r"\badded\s+sugars?\b",
     "protein": r"\bprotein\b",
     "calcium": r"\bcalcium\b",
@@ -73,6 +74,10 @@ ALLERGEN_TERMS = {
 
 UNIT_MAP = {
     "g": "g",
+    "gm": "g",
+    "gms": "g",
+    "gram": "g",
+    "grams": "g",
     "mg": "mg",
     "mcg": "mcg",
     "µg": "mcg",
@@ -113,27 +118,115 @@ def _number(value: str) -> float | None:
         return None
 
 
-def _parse_quantity(text: str) -> dict[str, Any] | None:
-    match = re.search(
-        r"(?<![\w.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(kcal|calories?|cal|g|mg|mcg|µg|ug)\b",
-        text,
-        flags=re.IGNORECASE,
-    )
+_QUANTITY_PATTERN = re.compile(
+    r"(?<![\w.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(kcal|calories?|cal|gms?|grams?|g|mg|mcg|µg|ug)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _split_pipe_cells(row: str) -> list[str]:
+    """Split a pipe-delimited table row, stripping outer Markdown pipes."""
+    stripped = row.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    return [_clean(cell) for cell in stripped.split("|")]
+
+
+def _parse_quantity(
+    text: str, *, column_index: int | None = None, default_unit: str | None = None
+) -> dict[str, Any] | None:
+    """Return the first number+unit; for tables, prefer the requested column.
+
+    ``column_index`` is a pipe-table cell index. This keeps a per-100-g value
+    from being read when a per-serving column appears first. Unknown basis is
+    never coerced to zero.
+    """
+    match = None
+    target = text
+    if column_index is not None and "|" in text:
+        cells = _split_pipe_cells(text)
+        if 0 <= column_index < len(cells):
+            target = cells[column_index]
+            match = _QUANTITY_PATTERN.search(target)
+    if match is None:
+        match = _QUANTITY_PATTERN.search(text)
+    if match is not None:
+        value = _number(match.group(1))
+        if value is None:
+            return None
+        raw_unit = match.group(2).lower()
+        unit = "kcal" if raw_unit in {"cal", "calorie", "calories"} else UNIT_MAP.get(raw_unit, raw_unit)
+        return {"value": value, "unit": unit}
+
+    if default_unit:
+        num_match = _NUMBER_PATTERN.search(target)
+        value = _number(num_match.group(0)) if num_match else None
+        if value is not None:
+            return {"value": value, "unit": default_unit}
+    return None
+
+
+def _header_column(rows: list[str], pattern: str) -> int | None:
+    """Find a table header cell index for `per 100` / `per serving`."""
+    for row in rows:
+        cells = _split_pipe_cells(row)
+        for index, cell in enumerate(cells):
+            if re.search(pattern, cell, re.IGNORECASE):
+                return index
+    return None
+
+
+_KCAL_PATTERN = re.compile(
+    r"(?<![\w.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*kcal\b",
+    flags=re.IGNORECASE,
+)
+_KJ_PATTERN = re.compile(
+    r"(?<![\w.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*kj\b",
+    flags=re.IGNORECASE,
+)
+_NUMBER_PATTERN = re.compile(
+    r"(?<![\w.])\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?",
+    flags=re.IGNORECASE,
+)
+
+
+def _kcal_value(row: str, *, column_index: int | None = None) -> float | None:
+    """Read kcal, preferring an explicit table column and converting kJ."""
+    target = row
+    restricted = False
+    if column_index is not None and "|" in row:
+        cells = _split_pipe_cells(row)
+        if 0 <= column_index < len(cells):
+            target = cells[column_index]
+            restricted = True
+
+    kcal_match = _KCAL_PATTERN.search(target)
+    if kcal_match:
+        return _number(kcal_match.group(1))
+    kj_match = _KJ_PATTERN.search(target)
+    if kj_match:
+        kj = _number(kj_match.group(1))
+        return round(kj / 4.184, 2) if kj is not None else None
+
+    if restricted:
+        match = _NUMBER_PATTERN.search(target)
+    else:
+        match = re.search(
+            r"\b(?:calories?|energy)\b\s*[:|]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s*kcal)?",
+            target,
+            flags=re.IGNORECASE,
+        )
     if not match:
         return None
-
-    value = _number(match.group(1))
-    if value is None:
-        return None
-
-    raw_unit = match.group(2).lower()
-    unit = "kcal" if raw_unit in {"cal", "calorie", "calories"} else UNIT_MAP.get(raw_unit, raw_unit)
-    return {"value": value, "unit": unit}
+    value = match.group(1) if match.lastindex else match.group(0)
+    return _number(value)
 
 
 def _row_nutrient(row: str) -> tuple[str | None, str]:
     """Identify a row's nutrient label without assigning unrelated quantities."""
-    parts = [_clean(part) for part in row.split("|")]
+    parts = _split_pipe_cells(row)
     label = parts[0] if len(parts) > 1 else row
     for key, pattern in NUTRIENT_PATTERNS.items():
         if re.search(pattern, label, re.IGNORECASE):
@@ -246,7 +339,7 @@ def _extract_additives(text: str | None, *, name_text: str | None = None, spaced
     ):
         additives.add(f"E{num.upper()}")
     for num in re.findall(
-        r"[\(\[\,&]\s*(\d{3,4})\s*(?:\([a-z0-9]+\))?\s*[\)\]\,&]", combined, re.IGNORECASE
+        r"[\(\[\,&]\s*(\d{3,4})\s*(?:\([a-z0-9]+\))?\s*(?=[\)\]\,&]|$)", combined, re.IGNORECASE
     ):
         if 100 <= int(num) <= 1599:
             additives.add(f"E{num}")
@@ -348,8 +441,46 @@ def _to_text_and_rows(ocr_content: str) -> tuple[str, list[str]]:
     text = _clean(text)
 
     if not rows:
-        rows = [_clean(line) for line in text.splitlines() if _clean(line)]
+        rows = [
+            _clean(line)
+            for line in text.splitlines()
+            if _clean(line) and not re.fullmatch(r"[\s|:\-]+", line)
+        ]
     return text, rows
+
+
+def validate_food_label(label: Any) -> dict[str, Any]:
+    """Fail closed on malformed parser output before it reaches NutriTrust scoring.
+
+    This checks the in-code NutriTrust ``food_label`` shape; the downstream
+    ``merge_product_data``/``product_analysis`` layer is the authoritative
+    schema. Missing optional values stay ``None``; unknown is never coerced to 0.
+    """
+    if not isinstance(label, dict):
+        raise ValueError("food label must be a JSON object")
+    required = {
+        "schema_version", "ingredients", "ingredient_items", "additives_tags",
+        "product_name", "brand", "allergen_analysis", "serving_size",
+        "calories_per_serving_kcal", "nutrition", "nutrition_review",
+        "daily_values_percent", "raw_text", "extraction", "warnings",
+    }
+    missing = sorted(required - label.keys())
+    if missing:
+        raise ValueError(f"food label missing required fields: {', '.join(missing)}")
+    if label["schema_version"] != "1.0":
+        raise ValueError(f"unsupported food label schema_version: {label['schema_version']!r}")
+    if not isinstance(label["nutrition"], dict):
+        raise ValueError("nutrition must be an object keyed by canonical nutrient name")
+    for nutrient, item in label["nutrition"].items():
+        if not isinstance(item, dict) or not isinstance(item.get("value"), (int, float)) or isinstance(item.get("value"), bool):
+            raise ValueError(f"nutrition.{nutrient} must contain a numeric value")
+        if not isinstance(item.get("unit"), str) or not item["unit"]:
+            raise ValueError(f"nutrition.{nutrient} must contain a unit")
+    if not isinstance(label["allergen_analysis"], dict):
+        raise ValueError("allergen_analysis must be an object")
+    if not isinstance(label["ingredient_items"], list) or not isinstance(label["warnings"], list):
+        raise ValueError("ingredient_items and warnings must be arrays")
+    return label
 
 
 def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dict[str, Any]:
@@ -360,6 +491,7 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
     """
     if not isinstance(ocr_content, str) or not ocr_content.strip():
         return {
+            "schema_version": "1.0",
             "ingredients": None,
             "ingredient_items": [],
             "additives_tags": [],
@@ -387,8 +519,16 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
         }
 
     readable_text, rows = _to_text_and_rows(ocr_content)
-    combined_rows = "\n".join(rows)
+    per_100g_column = _header_column(rows, r"(?:per\s*|/\s*)?100\s*(?:gms?|g|ml|grams?|milliliters?)\b")
+    per_serving_column = _header_column(rows, r"per\s+serving|amount\s+per\s+serving")
+    reference_basis = "unknown"
+    if per_100g_column is not None:
+        reference_basis = "per_100g"
+    elif per_serving_column is not None:
+        reference_basis = "per_serving"
     result: dict[str, Any] = {
+        "schema_version": "1.0",
+        "reference_basis": {"detected": reference_basis},
         "ingredients": None,
         "ingredient_items": [],
         "additives_tags": [],
@@ -433,23 +573,42 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
             "Serving size text was detected, but it does not contain a valid explicit weight in grams."
         )
 
-    for row in rows:
+    # Restrict nutrition scanning from the Nutrition header onward when present,
+    # and skip the ingredients block so "sugar" in ingredients is not read as nutrition.
+    nutrition_rows = rows
+    for idx, row in enumerate(rows):
+        if re.search(r"\bnutrition(?:al)?\s+(?:information|facts|values?)\b", row, re.IGNORECASE):
+            nutrition_rows = rows[idx:]
+            break
+    else:
+        nutrition_rows = [
+            row for row in rows
+            if not re.match(r"^\s*(?:ingredients?|composition|contains|may\s+contain)\b", row, re.IGNORECASE)
+        ]
+
+    header_unit_match = re.search(r"\(\s*(mg|mcg|g)\s*\)", " ".join(nutrition_rows[:3]), re.IGNORECASE)
+    header_default_unit = UNIT_MAP.get(header_unit_match.group(1).lower()) if header_unit_match else None
+    active_col = per_100g_column if per_100g_column is not None else per_serving_column
+
+    for idx, row in enumerate(nutrition_rows):
         if re.search(r"\b(?:calories?|energy)\b", row, re.IGNORECASE):
-            match = re.search(
-                r"\b(?:calories?|energy)\b\s*[:|]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s*kcal)?",
-                row, flags=re.IGNORECASE
-            )
-            if match:
-                result["calories_per_serving_kcal"] = _number(match.group(1))
+            value = _kcal_value(row, column_index=active_col)
+            if value is None and idx + 1 < len(nutrition_rows):
+                value = _kcal_value(nutrition_rows[idx + 1], column_index=active_col)
+            if value is not None:
+                result["calories_per_serving_kcal"] = value
                 break
 
-    for row in rows:
+    consumed_next: set[int] = set()
+    for idx, row in enumerate(nutrition_rows):
+        if idx in consumed_next:
+            continue
         # Some labels list salt instead of sodium; convert using sodium = salt / 2.5.
         if (
             re.search(r"\bsalt\b", row, re.IGNORECASE)
             and "sodium" not in result["nutrition"]
         ):
-            quantity = _parse_quantity(row)
+            quantity = _parse_quantity(row, column_index=active_col, default_unit=header_default_unit)
             if quantity and quantity["unit"] in {"g", "mg"}:
                 grams = quantity["value"] if quantity["unit"] == "g" else quantity["value"] / 1000
                 sodium_mg = round(grams * 1000 / 2.5, 2)
@@ -462,14 +621,28 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
 
         matched_key, label = _row_nutrient(row)
         if not matched_key:
-            if re.search(r"(?<![\w.])\d+(?:\.\d+)?\s*(?:g|mg|mcg|µg|ug)\b", row, re.IGNORECASE):
+            if re.search(r"(?<![\w.])\d+(?:\.\d+)?\s*(?:gms?|grams?|g|mg|mcg|µg|ug)\b", row, re.IGNORECASE):
                 result["nutrition_review"].append({
                     "status": "unresolved", "row": row,
                     "reason": "A quantity was present without a confidently identified nutrient label.",
                 })
             continue
 
-        quantity = _parse_quantity(row)
+        label_unit_match = re.search(r"\(\s*(mg|mcg|g)\s*\)", label, re.IGNORECASE)
+        row_default_unit = (
+            UNIT_MAP.get(label_unit_match.group(1).lower())
+            if label_unit_match
+            else header_default_unit
+        )
+        quantity = _parse_quantity(row, column_index=active_col, default_unit=row_default_unit)
+        if quantity is None and idx + 1 < len(nutrition_rows):
+            next_key, _ = _row_nutrient(nutrition_rows[idx + 1])
+            if not next_key:
+                quantity = _parse_quantity(
+                    nutrition_rows[idx + 1], column_index=active_col, default_unit=row_default_unit
+                )
+                if quantity is not None:
+                    consumed_next.add(idx + 1)
         if quantity is None:
             result["nutrition_review"].append({
                 "status": "invalid", "nutrient": matched_key, "row": row,
@@ -489,7 +662,12 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
         if quantity["value"] > maximum:
             reason = f"Value exceeds the conservative plausibility review limit of {maximum:g} {quantity['unit']}."
         serving_weight = (result.get("serving_size") or {}).get("weight_g")
-        if serving_weight and quantity["unit"] == "g" and quantity["value"] > serving_weight:
+        if (
+            reference_basis == "per_serving"
+            and serving_weight
+            and quantity["unit"] == "g"
+            and quantity["value"] > serving_weight
+        ):
             reason = f"Value exceeds the explicit serving mass of {serving_weight:g} g."
         if reason:
             result["nutrition_review"].append({
@@ -564,4 +742,4 @@ def parse_food_label(ocr_content: str, *, ingredients_only: bool = False) -> dic
     if result["ingredients"] is None:
         result["extraction"]["status"] = "partial"
 
-    return result
+    return validate_food_label(result)

@@ -106,3 +106,60 @@ Implementation limits:
   is completely safe.
 - The Annex-to-GMP list and the full gazette set are not reproduced; records carry that limitation
   in their notes and in every assessment.
+
+## 4. Tracker nutrition estimates
+
+Sources:
+
+- FAO/WHO/UNU, *Human Energy Requirements* (2004), Chapter 5, adult Schofield BMR equations and
+  the factorial relationship `TEE = BMR × PAL`:
+  https://www.fao.org/4/y5686e/y5686e07.htm
+- National Academies, *Dietary Reference Intakes for Energy* (2023), Chapters 5 and 7. Its
+  current EER equations use age, sex, height, weight and physical-activity category:
+  https://www.nationalacademies.org/read/26818/chapter/7
+  https://www.nationalacademies.org/read/26818/chapter/9
+- WHO, *Healthy diet* (26 Jan 2026), carbohydrate, fibre, free-sugar, total-fat, saturated-fat,
+  sodium and potassium guidance:
+  https://www.who.int/news-room/fact-sheets/detail/healthy-diet
+- National Academies, *Dietary Reference Intakes for Calcium and Vitamin D* (2011):
+  https://www.nationalacademies.org/read/13050/chapter/2
+- National Academies, *Dietary Reference Intakes for Vitamin A, Vitamin K, ... Iron ...* (2001):
+  https://www.nationalacademies.org/read/10026/chapter/2
+- National Academies, *Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty
+  Acids, Cholesterol, Protein, and Amino Acids* (2005):
+  https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids
+
+Implemented guidance (`tracker_service.py`):
+
+- For adults with age and weight, estimated energy is Schofield's age/sex/weight-based BMR
+  multiplied by an assumed PAL of 1.4. If gender is not specified as male or female, the estimate
+  uses the midpoint of those equations. If age or weight is unavailable, the tracker uses a
+  2,000 kcal / 50 g protein general adult reference instead.
+- Protein uses 0.8 g/kg/day when weight is available; otherwise the general reference is 50 g.
+- The carbohydrate bar uses the midpoint of WHO's 45–75% energy range. Total-fat and saturated-fat
+  bars use WHO upper limits of 30% and 10% of estimated energy, respectively.
+- Added sugar is compared with WHO's free-sugar limit (<10% of energy) only as a label-based
+  proxy. Total sugars remain separately displayed; labels may omit added sugar and do not capture
+  all free sugars (for example, sugars in juice or honey).
+- Fibre is 25 g/day for adults; sodium is below 2,000 mg/day; potassium is at least 3,510 mg/day.
+  Calcium is 1,000 mg/day for most adults, rising to 1,200 mg/day for women aged 51+ and men aged
+  71+; iron is 8 mg/day except for women aged 19–50, for whom it is 18 mg/day.
+- Adult targets are not displayed for profiles younger than 19. All label-derived nutrient totals
+  can be incomplete. These are general estimates, not clinical advice; they are not adjusted for
+  pregnancy, lactation, kidney disease, hypertension, or other medical conditions.
+- When a kidney-related condition is present in the profile, protein and potassium targets are
+  withheld rather than suggesting universal values for a condition that can require clinical
+  individualization.
+
+Limitations:
+
+- This is not the National Academies' current EER equation. Height and physical-activity level are
+  not collected, so the 2023 equation cannot be used. The assumed PAL is not measured or inferred
+  from the user's activity.
+- FAO/WHO/UNU notes that the Schofield equations were largely based on historical European and
+  North American datasets, so they may not predict every population equally well. The estimate
+  should not be represented as an exact personal calorie requirement.
+- Averaging the male/female Schofield estimates when profile gender is not in either category is a
+  transparent fallback, not a validated non-binary-specific equation.
+- Energy requirements are estimates rather than safe upper limits; body-weight trends and clinical
+  context matter. Mineral reference values are population guidance, not treatment targets.

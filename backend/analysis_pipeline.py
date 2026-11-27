@@ -40,7 +40,10 @@ def identity_conflicts(food_label: dict[str, Any], off_data: dict[str, Any]) -> 
     return conflicts
 
 
-def scoring_input_from_merged(merged_product: dict[str, Any]) -> dict[str, Any]:
+def scoring_input_from_merged(
+    merged_product: dict[str, Any],
+    nova_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Adapt the unified product model to the scoring service's input schema."""
     nutrition = merged_product.get("nutrition") if isinstance(merged_product.get("nutrition"), dict) else {}
     product = merged_product.get("product") if isinstance(merged_product.get("product"), dict) else {}
@@ -50,6 +53,11 @@ def scoring_input_from_merged(merged_product: dict[str, Any]) -> dict[str, Any]:
     per_100g = nutrition.get("per_100g") if isinstance(nutrition.get("per_100g"), dict) else {}
     normalization = nutrition.get("ocr_normalization")
     serving_info = normalization.get("serving_size", {}) if isinstance(normalization, dict) else {}
+    nova_group = classification.get("nova_group")
+    nova_source = sources.get("nova_group")
+    if nova_group is None and isinstance(nova_result, dict) and nova_result.get("group") is not None:
+        nova_group = nova_result["group"]
+        nova_source = "nutritrust_nova_engine"
     return {
         "product": product,
         "nutrition_per_100g": per_100g,
@@ -60,8 +68,8 @@ def scoring_input_from_merged(merged_product: dict[str, Any]) -> dict[str, Any]:
         "additives_available": sources.get("additives") is not None or bool(
             re.search(r"\bE\s*\d{3,4}[A-Z]?\b", ingredients.get("text") or "", re.IGNORECASE)
         ),
-        "nova_group": classification.get("nova_group"),
-        "nova_source": sources.get("nova_group"),
+        "nova_group": nova_group,
+        "nova_source": nova_source,
         "nutrition_conflicts": nutrition.get("conflicts", []),
         "serving_size_available": bool(serving_info.get("weight_g")),
     }
@@ -335,7 +343,7 @@ async def build_ocr_response(
     logger.info("merged OCR and external data")
     food_intelligence = run_food_intelligence(merged_product, log=logger)
     health_analysis = analyze_health(merged_product, engine_results=food_intelligence)
-    scoring = score(scoring_input_from_merged(merged_product))
+    scoring = score(scoring_input_from_merged(merged_product, food_intelligence["nova"]))
     logger.info("NutriTrust score result: eligibility=%s overall=%s", scoring["data_sufficiency"]["scoring_eligibility"], scoring["scores"]["overall"])
     logger.info("food intelligence: nutri_score=%s nova=%s additives=%s", food_intelligence["nutri_score"].get("status"), food_intelligence["nova"].get("status"), food_intelligence["additive_regulatory"].get("overall_status"))
     logger.info("health analysis complete: status=%s findings=%s", health_analysis.get("analysis_status"), len(health_analysis.get("findings", [])))
@@ -445,7 +453,7 @@ def build_barcode_analysis(
     )
     food_intelligence = run_food_intelligence(merged_product, log=logger or _LOGGER)
     health_analysis = analyze_health(merged_product, engine_results=food_intelligence)
-    scoring = score(scoring_input_from_merged(merged_product))
+    scoring = score(scoring_input_from_merged(merged_product, food_intelligence["nova"]))
 
     missing_fields = []
     if not merged_product["product"].get("name"):
@@ -569,7 +577,7 @@ def build_manual_analysis(
         merged_product, log=logger or _LOGGER, overrides=overrides
     )
     health_analysis = analyze_health(merged_product, engine_results=food_intelligence)
-    scoring = score(scoring_input_from_merged(merged_product))
+    scoring = score(scoring_input_from_merged(merged_product, food_intelligence["nova"]))
 
     missing_fields = []
     if not merged_product["product"].get("name"):

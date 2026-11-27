@@ -295,6 +295,34 @@ class ProductAnalysisPipelineTests(unittest.TestCase):
         self.assertNotIn("missing_data_warnings", analysis)
         self.assertIsNone(analysis["ingredients"]["text"])
 
+    def test_sarvam_markdown_ocr_populates_macros_and_nutritrust_score(self):
+        sarvam_md = (
+            "Product Name: Choco Biscuits\n"
+            "Ingredients: Refined wheat flour, sugar, palm oil, cocoa solids, raising agent (500(ii))\n"
+            "Nutrition Information\n"
+            "Serving size: 20 g\n"
+            "| Nutrient | Per serving | Per 100 gm |\n"
+            "| --- | --- | --- |\n"
+            "| Energy (kcal) | 96 | 480 |\n"
+            "| Fat | 4 gm | 20 gm |\n"
+            "| Saturates | 2 gm | 10 gm |\n"
+            "| Carbohydrate | 13 gm | 65 gm |\n"
+            "| Total Sugars | | |\n"
+            "24 gm\n"
+            "| Protein | 1.4 gm | 7 gm |\n"
+            "| Sodium | 60 mg | 300 mg |\n"
+        )
+        response, _ = self.request_analysis(text=sarvam_md)
+        self.assertEqual(response.status_code, 200)
+        analysis = response.json()["product_analysis"]
+        self.assertEqual(analysis["nutrition"]["per_100g"]["sugar"]["value"], 24.0)
+        self.assertEqual(analysis["nutrition"]["per_100g"]["protein"]["value"], 7.0)
+        self.assertIsInstance(analysis["scoring"]["scores"]["overall"], int)
+        self.assertEqual(
+            analysis["scoring"]["scores"]["nova_processing"]["source"],
+            "nutritrust_nova_engine",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

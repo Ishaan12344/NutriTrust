@@ -15,16 +15,16 @@ enum ConsumptionStatus {
   }
 
   String get wire => switch (this) {
-        ConsumptionStatus.pending => 'pending',
-        ConsumptionStatus.eaten => 'eaten',
-        ConsumptionStatus.notEaten => 'not_eaten',
-      };
+    ConsumptionStatus.pending => 'pending',
+    ConsumptionStatus.eaten => 'eaten',
+    ConsumptionStatus.notEaten => 'not_eaten',
+  };
 
   String get label => switch (this) {
-        ConsumptionStatus.pending => 'Pending',
-        ConsumptionStatus.eaten => 'Eaten',
-        ConsumptionStatus.notEaten => 'Not eaten',
-      };
+    ConsumptionStatus.pending => 'Pending',
+    ConsumptionStatus.eaten => 'Eaten',
+    ConsumptionStatus.notEaten => 'Not eaten',
+  };
 }
 
 Map<String, dynamic> _map(Object? value) =>
@@ -100,7 +100,9 @@ class TrackedItem {
       manualName: json['manual_name'] == true,
       needsName: json['needs_name'] == true,
       partialData: json['partial_data'] == true,
-      consumedAt: DateTime.tryParse(json['consumed_at']?.toString() ?? '')?.toLocal(),
+      consumedAt: DateTime.tryParse(
+        json['consumed_at']?.toString() ?? '',
+      )?.toLocal(),
       nutrition: {
         for (final entry in rawNutrition.entries)
           if (entry.value is num) entry.key: (entry.value as num).toDouble(),
@@ -183,6 +185,9 @@ class TrackerSnapshot {
     required this.partialDataCount,
     required this.highlight,
     required this.hasData,
+    required this.targetsAvailable,
+    required this.targetNote,
+    required this.nutrientReportCounts,
   });
 
   final String period;
@@ -201,9 +206,13 @@ class TrackerSnapshot {
   final int partialDataCount;
   final String highlight;
   final bool hasData;
+  final bool targetsAvailable;
+  final String targetNote;
+  final Map<String, int> nutrientReportCounts;
 
   double get calories => totals['energy_kcal'] ?? 0;
-  double get calorieTarget => periodTargets['energy_kcal'] ?? 0;
+  double? get calorieTarget =>
+      targetsAvailable ? periodTargets['energy_kcal'] : null;
   double get caloriePercent => percentages['energy_kcal'] ?? 0;
 
   factory TrackerSnapshot.fromJson(Map<String, dynamic> json) {
@@ -211,13 +220,14 @@ class TrackerSnapshot {
     final rawTargets = _map(json['targets']);
     final rawPeriodTargets = _map(json['period_targets']);
     final rawPercentages = _map(json['percentages']);
+    final rawNutrientReportCounts = _map(json['nutrient_report_counts']);
     final counts = _map(json['counts']);
     final range = _map(json['range']);
 
     Map<String, double> numbers(Map<String, dynamic> source) => {
-          for (final entry in source.entries)
-            if (entry.value is num) entry.key: (entry.value as num).toDouble(),
-        };
+      for (final entry in source.entries)
+        if (entry.value is num) entry.key: (entry.value as num).toDouble(),
+    };
 
     return TrackerSnapshot(
       period: json['period']?.toString() ?? 'daily',
@@ -234,23 +244,34 @@ class TrackerSnapshot {
           .whereType<Map>()
           .map((day) => TrackerDay.fromJson(Map<String, dynamic>.from(day)))
           .toList(),
-      trendDays: (json['trend_days'] is List ? json['trend_days'] as List : const [])
-          .whereType<Map>()
-          .map((day) => TrackerDay.fromJson(Map<String, dynamic>.from(day)))
-          .toList(),
-      recommendations: (json['recommendations'] is List
-              ? json['recommendations'] as List
-              : const [])
-          .whereType<Map>()
-          .map((rec) =>
-              TrackerRecommendation.fromJson(Map<String, dynamic>.from(rec)))
-          .toList(),
+      trendDays:
+          (json['trend_days'] is List ? json['trend_days'] as List : const [])
+              .whereType<Map>()
+              .map((day) => TrackerDay.fromJson(Map<String, dynamic>.from(day)))
+              .toList(),
+      recommendations:
+          (json['recommendations'] is List
+                  ? json['recommendations'] as List
+                  : const [])
+              .whereType<Map>()
+              .map(
+                (rec) => TrackerRecommendation.fromJson(
+                  Map<String, dynamic>.from(rec),
+                ),
+              )
+              .toList(),
       eatenCount: (counts['eaten'] as num?)?.toInt() ?? 0,
       notEatenCount: (counts['not_eaten'] as num?)?.toInt() ?? 0,
       pendingCount: (counts['pending'] as num?)?.toInt() ?? 0,
       partialDataCount: (json['partial_data_count'] as num?)?.toInt() ?? 0,
       highlight: json['highlight']?.toString() ?? '',
       hasData: json['has_data'] == true,
+      targetsAvailable: json['targets_available'] != false,
+      targetNote: json['target_note']?.toString() ?? '',
+      nutrientReportCounts: {
+        for (final entry in rawNutrientReportCounts.entries)
+          if (entry.value is num) entry.key: (entry.value as num).toInt(),
+      },
     );
   }
 }

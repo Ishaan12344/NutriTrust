@@ -112,7 +112,7 @@ def rate(product_data: dict) -> dict:
     additives_available = product_data.get("additives_available")
     if additives_available is None:
         additives_available = bool(additives_tags) or bool(
-            re.search(r"\\bE\\s*\\d{3,4}[A-Z]?\\b", ingredients_text, re.IGNORECASE)
+            re.search(r"\bE\s*\d{3,4}[A-Z]?\b", ingredients_text, re.IGNORECASE)
         )
     known_nova = product_data.get("nova_group")
     nova_source = product_data.get("nova_source")
@@ -374,11 +374,11 @@ def _compute_nova_score(ingredients_text: str, known_nova, nova_source=None) -> 
         and not isinstance(known_nova, bool)
         and float(known_nova).is_integer()
         and 1 <= int(known_nova) <= 4
-        and nova_source == "open_food_facts"
+        and nova_source in {"open_food_facts", "nutritrust_nova_engine"}
     )
     if trusted:
         nova_group = int(known_nova)
-        source = "open_food_facts"
+        source = nova_source
         score = NOVA_TO_CUSTOM_SCORE[nova_group]
     else:
         nova_group = None

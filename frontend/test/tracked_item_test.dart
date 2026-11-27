@@ -38,13 +38,22 @@ void main() {
         },
       ],
       'trend_days': [
-        {'date': '2026-11-26', 'totals': {'energy_kcal': 0}},
-        {'date': '2026-11-27', 'totals': {'energy_kcal': 300}},
+        {
+          'date': '2026-11-26',
+          'totals': {'energy_kcal': 0},
+        },
+        {
+          'date': '2026-11-27',
+          'totals': {'energy_kcal': 300},
+        },
       ],
       'counts': {'eaten': 1, 'not_eaten': 1, 'pending': 0},
       'partial_data_count': 1,
       'highlight': 'You hit 3% of your protein goal this week.',
       'has_data': true,
+      'targets_available': true,
+      'target_note': 'Adult estimate.',
+      'nutrient_report_counts': {'added_sugar': 1},
       'recommendations': [
         {
           'type': 'eat',
@@ -65,6 +74,22 @@ void main() {
     expect(snapshot.recommendations.single.type, 'eat');
     expect(snapshot.eatenCount, 1);
     expect(snapshot.hasData, isTrue);
+    expect(snapshot.targetsAvailable, isTrue);
+    expect(snapshot.targetNote, 'Adult estimate.');
+    expect(snapshot.nutrientReportCounts['added_sugar'], 1);
+  });
+
+  test('parses snapshots without applicable adult targets', () {
+    final snapshot = TrackerSnapshot.fromJson({
+      'targets_available': false,
+      'target_note': 'Adult targets are unavailable.',
+      'targets': {},
+      'period_targets': {},
+    });
+
+    expect(snapshot.targetsAvailable, isFalse);
+    expect(snapshot.calorieTarget, isNull);
+    expect(snapshot.targetNote, 'Adult targets are unavailable.');
   });
 
   test('unknown status falls back to pending', () {

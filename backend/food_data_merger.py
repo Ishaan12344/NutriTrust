@@ -205,6 +205,7 @@ def merge_product_data(
             "ocr_normalization": norm,
             "open_food_facts_basis": off.get("nutrition_basis") if off else None,
             "reference_basis": norm.get("reference_basis", {}).get("detected") if isinstance(norm.get("reference_basis"), dict) else None,
+            "source_values": norm.get("source_values", {}),
             "units": norm.get("units", {}),
             "conflicts": nutrition_conflicts,
         },
